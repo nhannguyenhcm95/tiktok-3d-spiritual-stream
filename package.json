@@ -1,0 +1,28 @@
+{
+  "name": "di-chua-3d-tiktok-stream",
+  "version": "1.0.0",
+  "description": "3D TikTok Interactive Spiritual Stream (Đi Chùa & Nhà Thờ Online 3D)",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "keywords": [
+    "tiktok-live",
+    "threejs",
+    "webgl",
+    "socketio",
+    "spiritual",
+    "temple",
+    "church"
+  ],
+  "author": "Multi-Agent System",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "tiktok-live-connector": "^1.2.3"
+  }
+}
