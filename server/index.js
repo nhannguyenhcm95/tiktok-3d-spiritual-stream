@@ -216,6 +216,19 @@ app.post('/api/mock/:actionType', (req, res) => {
   });
 });
 
+// Xử lý lỗi cổng bị chiếm (EADDRINUSE)
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ CỔNG ${PORT} ĐANG BỊ CHIẾM BỞI TIẾN TRÌNH KHÁC!`);
+    console.error(`👉 Bạn có thể giải phóng cổng bằng lệnh PowerShell sau:`);
+    console.error(`   Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess -Force`);
+    console.error(`   Sau đó gõ lại: npm start\n`);
+  } else {
+    console.error('Lỗi khởi động Server:', err);
+  }
+  process.exit(1);
+});
+
 // Khởi chạy server
 server.listen(PORT, async () => {
   console.log(`====================================================`);
