@@ -1,7 +1,7 @@
 /**
- * HUD Manager — Đại Hùng Bảo Điện Chùa An Lạc 3D
- * Quản lý Bảng Tổng Công Đức, Bảng Vàng Top Cúng Dường,
- * Toast Thông Báo Người Dâng Lễ và Bức Tường Lời Cầu An.
+ * HUD Manager — PHẬT ĐIỆN VẠN NGƯỜI
+ * Quản lý Bảng TÂM LÒNG THÀNH (Top 10), Bảng Tổng Công Đức,
+ * Banner Thông Báo (Join, Share, Gift), Toast và Prayer Wall.
  */
 
 export class HudManager {
@@ -9,13 +9,16 @@ export class HudManager {
     this.sound = soundSynth;
     this.totalMerit = 12480;
     this.displayedMerit = 12480;
-    this.userScores = new Map(); // uniqueId -> { nickname, avatarUrl, score }
+    this.userScores = new Map(); // uniqueId -> { nickname, avatarUrl, score, actionsCount }
+    this.totalDevotees = 8;
 
     // DOM Elements
     this.meritCounterEl = null;
+    this.devoteeCounterEl = null;
     this.leaderboardListEl = null;
     this.toastContainerEl = null;
     this.prayerWallEl = null;
+    this.topBannerEl = null;
 
     this.meritAnimTimer = null;
     this._onTikTokAction = this._onTikTokAction.bind(this);
@@ -24,9 +27,11 @@ export class HudManager {
 
   init() {
     this.meritCounterEl = document.getElementById('merit-counter');
+    this.devoteeCounterEl = document.getElementById('devotee-counter');
     this.leaderboardListEl = document.getElementById('leaderboard-list');
     this.toastContainerEl = document.getElementById('toast-container');
     this.prayerWallEl = document.getElementById('prayer-wall');
+    this.topBannerEl = document.getElementById('hud-event-banner');
 
     window.addEventListener('TIKTOK_ACTION', this._onTikTokAction);
     window.addEventListener('SERVER_STATUS_UPDATE', this._onServerStatus);
@@ -34,21 +39,47 @@ export class HudManager {
 
   _onServerStatus(e) {
     const status = e.detail;
-    if (status && typeof status.totalMerit === 'number' && status.totalMerit > this.totalMerit) {
+    if (!status) return;
+
+    if (typeof status.totalMerit === 'number' && status.totalMerit > this.totalMerit) {
       this.totalMerit = status.totalMerit;
       this._updateMeritDisplay();
+    }
+
+    if (typeof status.totalUsers === 'number') {
+      this.totalDevotees = Math.max(8, status.totalUsers);
+      if (this.devoteeCounterEl) {
+        this.devoteeCounterEl.textContent = `${this.totalDevotees} Phật tử`;
+      }
+    }
+
+    if (Array.isArray(status.leaderboard) && status.leaderboard.length > 0) {
+      this._renderLeaderboardFromArray(status.leaderboard);
     }
   }
 
   _calculateMerit(actionType, payload = {}) {
     const repeatCount = payload.repeatCount || 1;
     switch (actionType) {
-      case 'BOW':
+      case 'VIEWER_JOINED':
+        return 1;
+      case 'SHARE':
+        return 10;
+      case 'NIEM_PHAT':
+      case 'KNEEL':
+      case 'STAND':
         return 2;
+      case 'BOW':
+        return 3;
+      case 'PRAY':
+      case 'PRAYER_TEXT':
+      case 'OFFER_FLOWER':
+      case 'WALK_TO_ALTAR':
+        return 5;
       case 'WOODEN_FISH':
         return 1 * (payload.intensity || 1);
-      case 'PRAYER_TEXT':
-        return 5;
+      case 'COMMENT_CHAT':
+        return 1;
       case 'INCENSE_1':
         return 10 * repeatCount;
       case 'INCENSE_3':
@@ -84,35 +115,56 @@ export class HudManager {
     const data = e.detail;
     if (!data || !data.actionType) return;
 
-    const { actionType, user, payload } = data;
+    const { actionType, user, payload, leaderboard } = data;
     const points = this._calculateMerit(actionType, payload);
 
     // 1. Cộng tổng công đức
     this.totalMerit += points;
     this._updateMeritDisplay();
 
-    // 2. Cập nhật Bảng Vàng cá nhân
-    if (user && user.uniqueId) {
+    // 2. Cập nhật số Phật tử
+    this.totalDevotees++;
+    if (this.devoteeCounterEl) {
+      this.devoteeCounterEl.textContent = `${this.totalDevotees} Phật tử`;
+    }
+
+    // 3. Cập nhật Bảng TÂM LÒNG THÀNH
+    if (Array.isArray(leaderboard) && leaderboard.length > 0) {
+      this._renderLeaderboardFromArray(leaderboard);
+    } else if (user && user.uniqueId) {
       const existing = this.userScores.get(user.uniqueId) || {
-        nickname: user.nickname || 'Thiện Nam Tín Nữ',
+        nickname: user.nickname || 'Phật Tử',
         avatarUrl: user.avatarUrl || 'https://via.placeholder.com/100',
-        score: 0
+        score: 0,
+        actionsCount: 0
       };
       existing.score += points;
+      existing.actionsCount += 1;
       existing.nickname = user.nickname || existing.nickname;
       if (user.avatarUrl) existing.avatarUrl = user.avatarUrl;
       this.userScores.set(user.uniqueId, existing);
       this._renderLeaderboard();
     }
 
-    // 3. Hiện Toast Notification
+    // 4. Phát âm thanh tương ứng
+    if (this.sound) {
+      if (actionType === 'WOODEN_FISH' || actionType === 'NIEM_PHAT') {
+        this.sound.playWoodenFish();
+      } else if (actionType === 'BELL') {
+        this.sound.playBell();
+      } else if (actionType.startsWith('INCENSE') || actionType === 'OFFER_FLOWER' || actionType === 'BOW') {
+        this.sound.playBowl();
+      }
+    }
+
+    // 5. Hiển thị Toast & Thông báo trên đỉnh
     this._showToast(actionType, user, payload);
 
-    // 4. Lời cầu nguyện lên Prayer Wall
-    if (actionType === 'PRAYER_TEXT') {
+    // 6. Lời cầu nguyện lên Prayer Wall
+    if (actionType === 'PRAYER_TEXT' || actionType === 'PRAY') {
       const comment = payload?.comment || '';
-      if (comment.trim().length > 0) {
-        this._showPrayerCard(user?.nickname || 'Khán Giả', comment);
+      if (comment.trim().length > 0 && !['cầu an', 'cầu nguyện'].includes(comment.toLowerCase().trim())) {
+        this._showPrayerCard(user?.nickname || 'Phật Tử', comment);
       }
     }
   }
@@ -139,29 +191,38 @@ export class HudManager {
     }, 30);
   }
 
-  _renderLeaderboard() {
+  /**
+   * Render Bảng TÂM LÒNG THÀNH (Top 10)
+   */
+  _renderLeaderboardFromArray(items) {
     if (!this.leaderboardListEl) return;
-    const sorted = Array.from(this.userScores.values())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
-
-    if (sorted.length === 0) return;
+    const topItems = items.slice(0, 10);
     this.leaderboardListEl.innerHTML = '';
 
-    sorted.forEach((item, index) => {
+    topItems.forEach((item, index) => {
       const rank = index + 1;
       const row = document.createElement('div');
-      row.className = `leaderboard-item rank-${rank}`;
+      row.className = `leaderboard-item rank-${rank <= 3 ? rank : 'normal'}`;
       row.innerHTML = `
         <div class="leaderboard-user">
           <span class="leaderboard-rank">#${rank}</span>
-          <img class="leaderboard-avatar" src="${item.avatarUrl}" alt="${item.nickname}" onerror="this.src='https://via.placeholder.com/100'" />
+          <img class="leaderboard-avatar" src="${item.avatarUrl || 'https://via.placeholder.com/100'}" alt="${item.nickname}" onerror="this.src='https://via.placeholder.com/100'" />
           <span class="leaderboard-name">${this._escapeHtml(item.nickname)}</span>
         </div>
-        <span class="leaderboard-score">+${item.score.toLocaleString('vi-VN')}</span>
+        <span class="leaderboard-score">+${(item.score || 0).toLocaleString('vi-VN')}</span>
       `;
       this.leaderboardListEl.appendChild(row);
     });
+  }
+
+  _renderLeaderboard() {
+    if (!this.leaderboardListEl) return;
+    const sorted = Array.from(this.userScores.values())
+      .sort((a, b) => b.score - a.score || b.actionsCount - a.actionsCount)
+      .slice(0, 10);
+
+    if (sorted.length === 0) return;
+    this._renderLeaderboardFromArray(sorted);
   }
 
   _showToast(actionType, user, payload) {
@@ -170,13 +231,41 @@ export class HudManager {
     let actionText = '';
 
     switch (actionType) {
+      case 'VIEWER_JOINED':
+        icon = '🪷';
+        actionText = `vừa bước vào Đại Hùng Bảo Điện`;
+        break;
+      case 'SHARE':
+        icon = '🙏';
+        actionText = `đã chia sẻ buổi lễ đến muôn nơi!`;
+        break;
+      case 'NIEM_PHAT':
+        icon = '📿';
+        actionText = `chắp tay niệm: "Nam Mô A Di Đà Phật"`;
+        break;
       case 'BOW':
         icon = '🙏';
-        actionText = `thành tâm đảnh lễ: "Nam Mô A Di Đà Phật"`;
+        actionText = `thành kính đảnh lễ lạy Phật`;
+        break;
+      case 'KNEEL':
+        icon = '🧘';
+        actionText = `quỳ gối trước Tam Bảo tịnh tâm`;
+        break;
+      case 'STAND':
+        icon = '🧍';
+        actionText = `đứng dậy chắp tay trang nghiêm`;
+        break;
+      case 'OFFER_FLOWER':
+        icon = '🌸';
+        actionText = `dâng đóa hoa sen tươi thắm cúng dường`;
+        break;
+      case 'WALK_TO_ALTAR':
+        icon = '🚶';
+        actionText = `tiến lên phía bàn Phật dâng lễ`;
         break;
       case 'INCENSE_1':
         icon = '🕯️';
-        actionText = `thành kính dâng 1 nén tâm hương cầu an`;
+        actionText = `thành kính dâng 1 nén tâm hương`;
         break;
       case 'INCENSE_3':
         icon = '🕯️';
@@ -191,8 +280,8 @@ export class HudManager {
         actionText = `cúng dường Pháo Hoa Giấy Phúc Lộc rực rỡ!`;
         break;
       case 'OFFERING_FRUIT':
-        icon = '💐';
-        actionText = `dâng Mâm Hoa Quả Tươi Thắm lên cúng Phật!`;
+        icon = '🍇';
+        actionText = `dâng Mâm Hoa Quả Tươi Thắm lên bàn Phật!`;
         break;
       case 'BUDDHA_LIGHT':
       case 'PARADE_FLOAT':
@@ -205,12 +294,12 @@ export class HudManager {
         actionText = `đại cúng dường ${payload?.giftName || 'Đại Lễ Linh Thiêng'}! Công đức vô lượng!`;
         break;
       default:
-        return; // Bỏ qua nếu chỉ là mõ gõ bình thường để tránh rối màn hình
+        return; // Bỏ qua nếu chỉ là mõ gõ thường
     }
 
     const toast = document.createElement('div');
     toast.className = 'toast-item';
-    const nickname = user?.nickname || 'Thiện Nam Tín Nữ';
+    const nickname = user?.nickname || 'Phật Tử Thành Tâm';
     const avatar = user?.avatarUrl || 'https://via.placeholder.com/100';
 
     toast.innerHTML = `
@@ -255,7 +344,7 @@ export class HudManager {
       setTimeout(() => {
         if (card.parentNode) card.parentNode.removeChild(card);
       }, 800);
-    }, 7500);
+    }, 7000);
   }
 
   _escapeHtml(text) {

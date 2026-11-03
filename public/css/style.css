@@ -128,6 +128,19 @@ html, body {
   letter-spacing: 0.5px;
 }
 
+.devotee-counter-badge {
+  margin-left: auto;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--gold-glow);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
@@ -177,6 +190,13 @@ html, body {
   border-radius: 12px;
   padding: 6px 10px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  max-height: 145px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+#leaderboard-box::-webkit-scrollbar {
+  display: none;
 }
 
 .leaderboard-title {
@@ -528,6 +548,16 @@ html, body {
   border-radius: 6px;
   padding: 6px 14px;
   cursor: pointer;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #b71c1c, #d32f2f) !important;
+  color: #fff !important;
+  border: 1px solid #ef5350 !important;
+}
+
+.btn-danger:hover {
+  background: #f44336 !important;
 }
 
 .btn-toggle {

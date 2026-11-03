@@ -1,6 +1,6 @@
 /**
- * Express & Socket.io Server Entry Point
- * 3D TikTok Interactive Spiritual Stream
+ * Express & Socket.io Server Entry Point — PHẬT ĐIỆN VẠN NGƯỜI
+ * 3D TikTok Interactive Spiritual Live Stream
  */
 
 require('dotenv').config();
@@ -36,15 +36,18 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 eventQueue.init(io);
 
 /**
- * Hàm lấy đối tượng trạng thái phòng live chuẩn theo CONTRACT.md
+ * Lấy đối tượng trạng thái phòng live chuẩn theo CONTRACT.md & PHẬT ĐIỆN VẠN NGƯỜI
  */
 function getServerStatus() {
   const tiktokStatus = tiktokConnector.getStatus();
+  const queueStats = eventQueue.getStats();
   return {
     connected: tiktokStatus.connected,
     tiktokUsername: tiktokStatus.tiktokUsername,
     autoMock: mockSimulator.isEnabled(),
-    totalMerit: eventQueue.getTotalMerit()
+    totalMerit: eventQueue.getTotalMerit(),
+    totalUsers: queueStats.totalUsers,
+    leaderboard: eventQueue.getLeaderboard(10)
   };
 }
 
@@ -60,7 +63,7 @@ tiktokConnector.onStatusChange(() => {
   broadcastStatus();
 });
 
-// Định kỳ phát server_status mỗi 3 giây để đồng bộ tổng công đức
+// Định kỳ phát server_status mỗi 3 giây để đồng bộ
 setInterval(() => {
   broadcastStatus();
 }, 3000);
@@ -68,7 +71,6 @@ setInterval(() => {
 // ================= Socket.io Events =================
 io.on('connection', (socket) => {
   console.log(`[Socket.io] Client kết nối: ${socket.id}`);
-  // Gửi ngay trạng thái phòng khi client vừa kết nối
   socket.emit('server_status', getServerStatus());
 
   socket.on('disconnect', () => {
@@ -78,7 +80,7 @@ io.on('connection', (socket) => {
 
 // ================= REST APIs =================
 
-// 1. GET /api/status - Trả về trạng thái hiện tại
+// 1. GET /api/status - Trạng thái hệ thống & Bảng TÂM LÒNG THÀNH
 app.get('/api/status', (req, res) => {
   res.json({
     success: true,
@@ -87,10 +89,25 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// 2. POST /api/config - Cấu hình kênh TikTok và chế độ Auto-Mock
+// 2. GET /api/players - Danh sách toàn bộ Phật tử trong điện
+app.get('/api/players', (req, res) => {
+  res.json({
+    success: true,
+    players: eventQueue.getAllUsers()
+  });
+});
+
+// 3. POST /api/players/reset - Xóa danh sách người chơi để làm mới
+app.post('/api/players/reset', (req, res) => {
+  eventQueue.resetUsers();
+  broadcastStatus();
+  io.emit('reset_avatars', { timestamp: Date.now() });
+  res.json({ success: true, message: 'Đã xóa toàn bộ nhân vật' });
+});
+
+// 4. POST /api/config - Cấu hình kênh TikTok và chế độ Auto-Mock
 app.post('/api/config', async (req, res) => {
   const { tiktokUsername, autoMock } = req.body;
-
   let message = [];
 
   // Bật/tắt Auto-Mock
@@ -111,10 +128,9 @@ app.post('/api/config', async (req, res) => {
       await tiktokConnector.disconnectTikTok();
       message.push('Đã ngắt kết nối TikTok');
     } else {
-      message.push(`Đang chuyển kết nối tới @${trimmed}`);
-      // Thực hiện kết nối trong background
+      message.push(`Đang kết nối tới @${trimmed}`);
       tiktokConnector.connectToTikTok(trimmed).catch((err) => {
-        console.error('[API Config] Lỗi khi kết nối TikTok:', err.message);
+        console.error('[API Config] Lỗi kết nối TikTok:', err.message);
       });
     }
   }
@@ -128,15 +144,17 @@ app.post('/api/config', async (req, res) => {
   });
 });
 
-// 3. POST /api/mock/:actionType - Bắn sự kiện test trực tiếp từ Debug Panel
+// 5. POST /api/mock/:actionType - Bắn sự kiện test trực tiếp từ Admin Dashboard
 app.post('/api/mock/:actionType', (req, res) => {
   const { actionType } = req.params;
   const validTypes = [
-    'BOW', 'WOODEN_FISH', 'PRAYER_TEXT',
+    'VIEWER_JOINED', 'SHARE',
+    'NIEM_PHAT', 'KNEEL', 'BOW', 'STAND', 'PRAY', 'OFFER_FLOWER', 'WALK_TO_ALTAR',
+    'WOODEN_FISH', 'PRAYER_TEXT', 'COMMENT_CHAT',
     'INCENSE_1', 'INCENSE_3', 'LANTERN', 'OFFERING_FRUIT',
     'BELL', 'CONFETTI', 'PARADE_FLOAT', 'BUDDHA_LIGHT',
     'THOUSAND_LANTERNS', 'GOLDEN_PAGODA', 'GOLDEN_LION',
-    'GOLDEN_PHOENIX', 'TIKTOK_UNIVERSE', 'INCENSE'
+    'GOLDEN_PHOENIX', 'TIKTOK_UNIVERSE'
   ];
 
   if (!validTypes.includes(actionType)) {
@@ -159,20 +177,19 @@ app.post('/api/mock/:actionType', (req, res) => {
 // Khởi chạy server
 server.listen(PORT, async () => {
   console.log(`====================================================`);
-  console.log(` 3D Spiritual Live Stream Server is running!`);
+  console.log(` PHẬT ĐIỆN VẠN NGƯỜI — 3D TikTok Live Stream`);
   console.log(` Cổng: http://localhost:${PORT}`);
   console.log(` Chế độ AUTO_MOCK: ${AUTO_MOCK_INIT ? 'BẬT (ON)' : 'TẮT (OFF)'}`);
   console.log(`====================================================`);
 
-  // Tự động bật Auto-Mock nếu được chỉ định
+  // Tự động kết nối kênh TikTok từ .env nếu có
+  if (INITIAL_TIKTOK_USERNAME) {
+    console.log(`[Init] Tự động kết nối tới kênh @${INITIAL_TIKTOK_USERNAME}...`);
+    tiktokConnector.connectToTikTok(INITIAL_TIKTOK_USERNAME).catch(() => {});
+  }
+
+  // Tự động kích hoạt mock nếu bật
   if (AUTO_MOCK_INIT) {
     mockSimulator.start();
   }
-
-  // Tự động kết nối TikTok nếu có username
-  if (INITIAL_TIKTOK_USERNAME) {
-    console.log(`[Init] Tự động kết nối kênh TikTok: @${INITIAL_TIKTOK_USERNAME}`);
-    tiktokConnector.connectToTikTok(INITIAL_TIKTOK_USERNAME);
-  }
 });
-

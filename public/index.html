@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Lên Chùa Cầu An — Đại Hùng Bảo Điện 3D Live Stream</title>
+  <title>PHẬT ĐIỆN VẠN NGƯỜI — Đại Hùng Bảo Điện 3D TikTok Live</title>
 
   <!-- Importmap Three.js & GSAP -->
   <script type="importmap">
@@ -19,9 +19,9 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <!-- KHUNG CHỨA TOÀN BỘ ỨNG DỤNG TỶ LỆ 9:16 (OBS BROWSER SOURCE & MOBILE) -->
+  <!-- KHUNG CHỨA TOÀN BỘ ỨNG DỤNG TỶ LỆ 9:16 (OBS BROWSER SOURCE 1080x1920 & MOBILE) -->
   <div id="app-wrapper">
-    <!-- WebGL Three.js Container (Chánh điện Chùa An Lạc) -->
+    <!-- WebGL Three.js Container (Chánh điện Đại Hùng Bảo Điện 3D) -->
     <div id="webgl-container"></div>
 
     <!-- HUD LAYER TIKTOK SAFE-ZONE (z-index: 10) -->
@@ -31,9 +31,10 @@
         <div class="temple-banner">
           <span class="temple-lotus">🪷</span>
           <div class="temple-titles">
-            <span class="temple-main-name">CHÙA AN LẠC</span>
+            <span class="temple-main-name">PHẬT ĐIỆN VẠN NGƯỜI</span>
             <span class="temple-sub-name">ĐẠI HÙNG BẢO ĐIỆN • TRỰC TUYẾN 3D</span>
           </div>
+          <span id="devotee-counter" class="devotee-counter-badge">8 Phật tử</span>
         </div>
 
         <div class="stats-grid">
@@ -43,13 +44,13 @@
             <div id="merit-counter">12.480</div>
           </div>
 
-          <!-- Bảng Vàng Công Đức (Top 3) -->
+          <!-- Bảng TÂM LÒNG THÀNH (Top 10) -->
           <div id="leaderboard-box">
             <div class="leaderboard-title">
-              <span>🏆 BẢNG VÀNG CÔNG ĐỨC</span>
+              <span>🏆 TÂM LÒNG THÀNH</span>
             </div>
             <div id="leaderboard-list">
-              <div class="leaderboard-empty">Chưa có người cúng dường...</div>
+              <div class="leaderboard-empty">Đang kết nối đạo tràng...</div>
             </div>
           </div>
         </div>
@@ -57,7 +58,7 @@
 
       <!-- 2. VÙNG GIỮA MÀN HÌNH (MID 50% SAFE-ZONE) -->
       <main class="hud-middle-section">
-        <!-- Vùng thông báo Toast (Thắp hương, Thỉnh chuông, Cúng dường) -->
+        <!-- Vùng thông báo Toast (Tham gia, Chia sẻ, Cúng dường) -->
         <div id="toast-container"></div>
 
         <!-- Bức tường lời cầu an lung linh bên phải -->
@@ -65,33 +66,33 @@
       </main>
 
       <!-- 3. VÙNG DƯỚI CÙNG (BOTTOM 30% SAFE-ZONE) -->
-      <!-- Góc dưới bên trái chừa trống hoàn toàn cho Khung Chat TikTok Live -->
+      <!-- Góc dưới bên trái chừa khoảng an toàn cho Khung Chat TikTok Live -->
       <footer class="hud-bottom-section">
         <div class="live-instructions">
           <div class="instruction-row">
-            <span class="tag-chat">Bình Luận</span>
-            <span class="desc"><b>"A Di Đà Phật"</b> để Vái Lạy & Gõ Mõ (+2 công đức)</span>
+            <span class="tag-chat">LỆNH CHAT</span>
+            <span class="desc"><b>"NAM MÔ"</b> (chắp tay) | <b>"QUỲ"</b> | <b>"LẠY"</b> | <b>"ĐỨNG"</b></span>
           </div>
           <div class="instruction-row">
-            <span class="tag-chat">Bình Luận</span>
-            <span class="desc"><b>Lời cầu nguyện</b> để Treo Lụa & Thả Đèn (+5 công đức)</span>
+            <span class="tag-chat">LỆNH CHAT</span>
+            <span class="desc"><b>"CẦU AN"</b> | <b>"DÂNG HOA"</b> | <b>"ĐI LỄ"</b> | Lời cầu nguyện</span>
           </div>
           <div class="instruction-row">
-            <span class="tag-gift">Cúng Dường</span>
-            <span class="desc"><b>Hoa hồng / Tim (1 xu)</b>: Thắp 1 nén tâm hương</span>
+            <span class="tag-gift">CÚNG DƯỜNG</span>
+            <span class="desc"><b>Hoa hồng / Tim (1 xu)</b>: Dâng 1 nén tâm hương</span>
           </div>
           <div class="instruction-row">
-            <span class="tag-gift">Cúng Dường</span>
+            <span class="tag-gift">CÚNG DƯỜNG</span>
             <span class="desc"><b>Hạc giấy (99 xu)</b>: Thỉnh Đại Hồng Chung | <b>Quà lớn</b>: Phật Quang</span>
           </div>
         </div>
       </footer>
     </div>
 
-    <!-- BẢNG ĐIỀU KHIỂN DEBUG / TEST DONATE DÀNH CHO CHỦ LIVE (BẬT BẰNG PHÍM D HOẶC NÚT GÓC) -->
+    <!-- BẢNG ĐIỀU KHIỂN ADMIN DASHBOARD DÀNH CHO CHỦ LIVE (BẬT BẰNG PHÍM D HOẶC NÚT GÓC) -->
     <div id="debug-panel" class="hidden">
       <div class="debug-header">
-        <h3>⚙️ BẢNG ĐIỀU KHIỂN & TEST DONATE TIKTOK</h3>
+        <h3>⚙️ ADMIN DASHBOARD — PHẬT ĐIỆN VẠN NGƯỜI</h3>
         <button id="btn-close-debug" class="btn-close" title="Đóng">&times;</button>
       </div>
 
@@ -119,12 +120,39 @@
           <button id="btn-toggle-audio" class="btn-toggle on">🔊 Đang Bật</button>
         </div>
 
+        <div class="debug-row flex-between">
+          <span>Quản lý Phật tử trong điện:</span>
+          <button id="btn-reset-players" class="btn-action btn-danger">Xóa / Reset Nhân Vật</button>
+        </div>
+
+        <!-- TEST SỰ KIỆN KHÁN GIẢ -->
         <div class="debug-row">
-          <label><b>Test Cúng Dường Theo Bảng Giá Xu TikTok:</b></label>
+          <label><b>1. Test Khán Giả Tham Gia & Tương Tác:</b></label>
           <div class="test-grid">
-            <button class="btn-test" id="test-bow">🙏 A Di Đà Phật</button>
-            <button class="btn-test" id="test-fish">🪵 Gõ Mõ</button>
-            <button class="btn-test" id="test-pray">📜 Cầu Bình An</button>
+            <button class="btn-test" id="test-join">➕ Người Xem Mới (Join)</button>
+            <button class="btn-test" id="test-share">📢 Chia Sẻ Live (Share)</button>
+          </div>
+        </div>
+
+        <!-- TEST ĐIỀU KHIỂN BẰNG COMMENT -->
+        <div class="debug-row">
+          <label><b>2. Test Lệnh Comment Điều Khiển Avatar:</b></label>
+          <div class="test-grid">
+            <button class="btn-test" id="test-nammo">📿 NAM MÔ (Chắp tay)</button>
+            <button class="btn-test" id="test-quy">🧘 QUỲ (Quỳ gối)</button>
+            <button class="btn-test" id="test-lay">🙏 LẠY (Lạy Phật)</button>
+            <button class="btn-test" id="test-dung">🧍 ĐỨNG (Đứng lên)</button>
+            <button class="btn-test" id="test-cauan">📜 CẦU AN (Cầu nguyện)</button>
+            <button class="btn-test" id="test-danghoa">🌸 DÂNG HOA (Hoa sen)</button>
+            <button class="btn-test" id="test-dile">🚶 ĐI LỄ (Tiến lên dâng)</button>
+            <button class="btn-test" id="test-fish">🪵 GÕ MÕ ("Cốc!")</button>
+          </div>
+        </div>
+
+        <!-- TEST CÚNG DƯỜNG GIFT -->
+        <div class="debug-row">
+          <label><b>3. Test Cúng Dường Quà Tặng (Bảng Giá Xu TikTok):</b></label>
+          <div class="test-grid">
             <button class="btn-test" id="test-1">🌹 Hoa Hồng (1 xu)</button>
             <button class="btn-test" id="test-5">🍑 Bắn Tim (5 xu)</button>
             <button class="btn-test" id="test-10">🍀 Cỏ 4 Lá (10 xu)</button>
@@ -143,8 +171,8 @@
       </div>
     </div>
 
-    <!-- Nút nhỏ ở góc mở nhanh bảng điều khiển -->
-    <button id="debug-floating-btn" title="Mở bảng điều khiển (Phím D)">⚙️</button>
+    <!-- Nút nhỏ ở góc mở nhanh bảng Admin Dashboard -->
+    <button id="debug-floating-btn" title="Mở Admin Dashboard (Phím D)">⚙️</button>
   </div>
 
   <!-- Entry Point JavaScript Module -->

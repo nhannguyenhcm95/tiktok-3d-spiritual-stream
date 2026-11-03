@@ -1,7 +1,8 @@
 /**
- * Main Entry Point — Đại Hùng Bảo Điện Chùa An Lạc 3D Live Stream
- * Tự động kết nối Socket.io với TikTok Live, điều phối tương tác hoàn toàn
- * qua comment niệm Phật & donate cúng dường, tích hợp Debug Panel (phím D).
+ * Main Entry Point — PHẬT ĐIỆN VẠN NGƯỜI
+ * Khởi tạo SceneManager, SoundSynth, HudManager.
+ * Kết nối Socket.io với TikTok Live, điều phối sự kiện tương tác
+ * và tích hợp Admin Dashboard (phím D) với đầy đủ test commands & gifts.
  */
 
 import { SceneManager } from './3d/SceneManager.js';
@@ -21,7 +22,7 @@ class App {
   }
 
   async init() {
-    console.log('[Main] Khởi động Đại Hùng Bảo Điện 3D Live Stream...');
+    console.log('[Main] Khởi động PHẬT ĐIỆN VẠN NGƯỜI 3D Live Stream...');
 
     // 1. Khởi tạo Three.js SceneManager
     const webglContainer = document.getElementById('webgl-container');
@@ -42,13 +43,13 @@ class App {
     // 5. Kết nối Socket.io
     this._initSocket();
 
-    // 6. Bảng điều khiển Debug Panel (phím D)
+    // 6. Admin Dashboard (phím D)
     this._setupDebugPanel();
 
     // 7. Anti-AFK Watchdog (chống TikTok quét phòng Live tĩnh)
     this._startAfkWatchdog();
 
-    console.log('[Main] Hệ thống đã sẵn sàng phát sóng!');
+    console.log('[Main] Hệ thống PHẬT ĐIỆN VẠN NGƯỜI đã sẵn sàng phát sóng!');
   }
 
   _setupAudioAutoUnlock() {
@@ -75,6 +76,10 @@ class App {
     this.socket.on('server_status', (status) => {
       window.dispatchEvent(new CustomEvent('SERVER_STATUS_UPDATE', { detail: status }));
       this._updateStatusUI(status);
+    });
+
+    this.socket.on('reset_avatars', () => {
+      window.dispatchEvent(new CustomEvent('RESET_AVATARS'));
     });
 
     this.socket.on('connect', () => {
@@ -108,7 +113,7 @@ class App {
     const debugPanel = document.getElementById('debug-panel');
     const toggleDebug = () => debugPanel.classList.toggle('hidden');
 
-    // Phím D ẩn/hiện bảng điều khiển
+    // Phím D ẩn/hiện Admin Dashboard
     window.addEventListener('keydown', (e) => {
       if (e.key === 'd' || e.key === 'D') {
         if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
@@ -169,11 +174,33 @@ class App {
       };
     }
 
-    // 16 Nút Test cúng dường theo bảng giá
+    // Nút Xóa / Reset Phật tử trong điện
+    const btnResetPlayers = document.getElementById('btn-reset-players');
+    if (btnResetPlayers) {
+      btnResetPlayers.onclick = async () => {
+        try {
+          await fetch('/api/players/reset', { method: 'POST' });
+        } catch (e) {}
+      };
+    }
+
+    // Danh sách các nút test
     const testList = [
-      { id: 'test-bow', action: 'BOW' },
+      // 1. Khán giả
+      { id: 'test-join', action: 'VIEWER_JOINED' },
+      { id: 'test-share', action: 'SHARE' },
+
+      // 2. Lệnh Comment
+      { id: 'test-nammo', action: 'NIEM_PHAT' },
+      { id: 'test-quy', action: 'KNEEL' },
+      { id: 'test-lay', action: 'BOW' },
+      { id: 'test-dung', action: 'STAND' },
+      { id: 'test-cauan', action: 'PRAY' },
+      { id: 'test-danghoa', action: 'OFFER_FLOWER' },
+      { id: 'test-dile', action: 'WALK_TO_ALTAR' },
       { id: 'test-fish', action: 'WOODEN_FISH' },
-      { id: 'test-pray', action: 'PRAYER_TEXT' },
+
+      // 3. Cúng dường Quà tặng
       { id: 'test-1', action: 'INCENSE_1' },
       { id: 'test-5', action: 'INCENSE_3' },
       { id: 'test-10', action: 'LANTERN' },
@@ -202,17 +229,17 @@ class App {
   }
 
   _startAfkWatchdog() {
-    // Nếu quá 18 giây không có ai cmt/donate, tự động kích hoạt 1 nhịp niệm Phật nhẹ
+    // Nếu quá 20 giây không có ai cmt/donate, tự động kích hoạt 1 nhịp niệm Phật nhẹ
     setInterval(() => {
       const now = Date.now();
-      if (now - this.lastEventTime > 18000) {
+      if (now - this.lastEventTime > 20000) {
         this.lastEventTime = now;
         window.dispatchEvent(
           new CustomEvent('TIKTOK_ACTION', {
             detail: {
               id: `afk_${now}`,
               timestamp: now,
-              actionType: 'BOW',
+              actionType: 'NIEM_PHAT',
               user: {
                 uniqueId: 'tam_linh_online',
                 nickname: 'Đạo Tràng Chùa An Lạc',
@@ -225,7 +252,7 @@ class App {
           })
         );
       }
-    }, 18000);
+    }, 20000);
   }
 }
 

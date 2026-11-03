@@ -1,7 +1,7 @@
 /**
- * TikTok Live Connector Module
- * Kết nối TikTok Live thời gian thực, tự động reconnect và ánh xạ sự kiện
- * sang các hoạt động tâm linh chùa Việt theo đúng bảng giá cúng dường.
+ * TikTok Live Connector Module — PHẬT ĐIỆN VẠN NGƯỜI
+ * Kết nối TikTok Live thời gian thực, tự động reconnect và chuẩn hóa sự kiện
+ * sang các hoạt động Phật tử 3D theo đúng Command Parser và Bảng Giá Gift.
  */
 
 const { WebcastPushConnection } = require('tiktok-live-connector');
@@ -119,6 +119,91 @@ class TikTokConnector {
     }, delay);
   }
 
+  /**
+   * Command Parser chuẩn hóa tiếng Việt có dấu và không dấu
+   */
+  _parseCommentCommand(rawComment) {
+    if (!rawComment) return { actionType: 'COMMENT_CHAT', command: '' };
+    const str = rawComment.trim();
+    const lower = str.toLowerCase();
+    const noMark = lower
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd');
+
+    // 1. Lệnh LẠY / LẠY PHẬT (BOW)
+    if (
+      lower === 'lạy' || lower === 'lay' ||
+      lower === 'lạy phật' || lower === 'lay phat' ||
+      lower.startsWith('!lay') || lower.startsWith('!lạy') ||
+      lower === 'đảnh lễ' || lower === 'danh le'
+    ) {
+      return { actionType: 'BOW', command: 'BOW' };
+    }
+
+    // 2. Lệnh NIỆM PHẬT / NAM MÔ (NIEM_PHAT)
+    if (
+      lower === 'nam mô' || lower === 'nam mo' ||
+      lower === 'a di đà phật' || lower === 'a di da phat' ||
+      lower === 'nam mô a di đà phật' || lower === 'nam mo a di da phat' ||
+      lower === 'a di đà' || lower === 'a di da' ||
+      lower.startsWith('!nammo') || lower.startsWith('!adida')
+    ) {
+      return { actionType: 'NIEM_PHAT', command: 'NIEM_PHAT' };
+    }
+
+    // 3. Lệnh QUỲ (KNEEL)
+    if (lower === 'quỳ' || lower === 'quy' || lower.startsWith('!quy') || lower.startsWith('!quỳ')) {
+      return { actionType: 'KNEEL', command: 'KNEEL' };
+    }
+
+    // 4. Lệnh ĐỨNG / ĐỨNG LÊN (STAND)
+    if (
+      lower === 'đứng' || lower === 'dung' ||
+      lower === 'đứng lên' || lower === 'dung len' ||
+      lower.startsWith('!dung') || lower.startsWith('!đứng')
+    ) {
+      return { actionType: 'STAND', command: 'STAND' };
+    }
+
+    // 5. Lệnh CẦU AN / CẦU NGUYỆN (PRAY)
+    if (
+      lower === 'cầu an' || lower === 'cau an' ||
+      lower === 'cầu nguyện' || lower === 'cau nguyen' ||
+      lower.startsWith('!cauan') || lower.startsWith('!pray')
+    ) {
+      return { actionType: 'PRAY', command: 'PRAY' };
+    }
+
+    // 6. Lệnh DÂNG HOA (OFFER_FLOWER)
+    if (
+      lower === 'dâng hoa' || lower === 'dang hoa' ||
+      lower === 'hoa' || lower.startsWith('!hoa') || lower.startsWith('!danghoa')
+    ) {
+      return { actionType: 'OFFER_FLOWER', command: 'OFFER_FLOWER' };
+    }
+
+    // 7. Lệnh ĐI LỄ (WALK_TO_ALTAR)
+    if (lower === 'đi lễ' || lower === 'di le' || lower.startsWith('!dile')) {
+      return { actionType: 'WALK_TO_ALTAR', command: 'WALK_TO_ALTAR' };
+    }
+
+    // 8. Lời cầu nguyện tự do (PRAYER_TEXT)
+    const prayerKeywords = ['cầu', 'ước', 'nguyện', 'bình an', 'sức khỏe', 'mạnh khỏe', 'thi cử', 'đỗ đạt', 'cha mẹ', 'gia đình', 'bình yên', 'may mắn'];
+    const hasPrayer = prayerKeywords.some(kw => noMark.includes(kw));
+    if (hasPrayer) {
+      return { actionType: 'PRAYER_TEXT', command: 'PRAYER_TEXT' };
+    }
+
+    // 9. Lệnh gõ mõ (WOODEN_FISH)
+    if (noMark.includes('go mo') || lower === 'mõ' || lower === 'mo' || lower === '1') {
+      return { actionType: 'WOODEN_FISH', command: 'WOODEN_FISH' };
+    }
+
+    // 10. Comment trò chuyện thông thường -> Hiện Comment Bubble trên đầu nhân vật
+    return { actionType: 'COMMENT_CHAT', command: 'CHAT' };
+  }
+
   _setupListeners() {
     if (!this.connection) return;
 
@@ -139,7 +224,45 @@ class TikTokConnector {
       console.error('[TikTokConnector] Lỗi:', err.message);
     });
 
-    // 1. LIKE -> Tích lũy 10 like = 1 tiếng gõ mõ
+    // 1. MEMBER JOIN -> Tạo Phật tử mới trong điện
+    this.connection.on('member', (data) => {
+      const user = {
+        uniqueId: data.uniqueId || `user_${Date.now()}`,
+        nickname: data.nickname || data.uniqueId || 'Phật Tử Mới',
+        avatarUrl: data.profilePictureUrl || 'https://via.placeholder.com/100'
+      };
+
+      eventQueue.enqueue({
+        id: `join_${Date.now()}_${Math.random()}`,
+        timestamp: Date.now(),
+        actionType: 'VIEWER_JOINED',
+        user,
+        payload: {
+          comment: 'Vừa bước vào Đại Hùng Bảo Điện 🙏'
+        }
+      });
+    });
+
+    // 2. SHARE LIVE -> Phật tử chắp tay cầu nguyện & hiện thông báo
+    this.connection.on('share', (data) => {
+      const user = {
+        uniqueId: data.uniqueId || 'share_user',
+        nickname: data.nickname || data.uniqueId || 'Phật Tử Thành Tâm',
+        avatarUrl: data.profilePictureUrl || 'https://via.placeholder.com/100'
+      };
+
+      eventQueue.enqueue({
+        id: `share_${Date.now()}_${Math.random()}`,
+        timestamp: Date.now(),
+        actionType: 'SHARE',
+        user,
+        payload: {
+          comment: 'Đã chia sẻ buổi lễ cầu an 🙏'
+        }
+      });
+    });
+
+    // 3. LIKE -> Tích lũy 10 like = 1 tiếng gõ mõ
     this.connection.on('like', (data) => {
       const likeCount = data.likeCount || 1;
       this.totalAccumulatedLikes += likeCount;
@@ -168,78 +291,35 @@ class TikTokConnector {
       }
     });
 
-    // 2. CHAT -> Phân tích câu: "A di đà phật" (Vái lạy), Lời cầu an, Gõ mõ
+    // 4. CHAT -> Phân tích Command Parser điều khiển Avatar & Comment Bubble
     this.connection.on('chat', (data) => {
       const commentRaw = data.comment || '';
-      const lower = commentRaw.toLowerCase();
-
       const user = {
         uniqueId: data.uniqueId || 'chat_user',
-        nickname: data.nickname || data.uniqueId || 'Khách Hành Hương',
+        nickname: data.nickname || data.uniqueId || 'Phật Tử',
         avatarUrl: data.profilePictureUrl || 'https://via.placeholder.com/100'
       };
 
-      // Từ khóa Niệm Phật Vái Lạy
-      const buddhaWords = ['a di đà', 'a di da', 'nam mô', 'nam mo', 'phật', 'phat', 'vái', 'lạy', 'bồ tát', 'bo tat', 'quan âm', 'chúc phúc'];
-      const hasBuddha = buddhaWords.some(kw => lower.includes(kw));
+      const parsed = this._parseCommentCommand(commentRaw);
 
-      if (hasBuddha) {
-        eventQueue.enqueue({
-          id: `chat_bow_${Date.now()}_${Math.random()}`,
-          timestamp: Date.now(),
-          actionType: 'BOW',
-          user,
-          payload: {
-            comment: commentRaw,
-            giftName: '',
-            diamondCount: 0,
-            repeatCount: 1
-          }
-        });
-        return;
-      }
-
-      // Từ khóa Lời Cầu An
-      const prayerWords = ['cầu', 'ước', 'nguyện', 'bình an', 'sức khỏe', 'mạnh khỏe', 'thi cử', 'đỗ đạt', 'cha mẹ', 'gia đình', 'bình yên', 'may mắn'];
-      const hasPrayer = prayerWords.some(kw => lower.includes(kw));
-
-      if (hasPrayer) {
-        eventQueue.enqueue({
-          id: `chat_pray_${Date.now()}_${Math.random()}`,
-          timestamp: Date.now(),
-          actionType: 'PRAYER_TEXT',
-          user,
-          payload: {
-            comment: commentRaw,
-            giftName: '',
-            diamondCount: 0,
-            repeatCount: 1
-          }
-        });
-        return;
-      }
-
-      // Comment ngắn hoặc từ khóa mõ
-      if (lower.includes('gõ') || lower.includes('mõ') || lower.includes('1') || commentRaw.trim().length <= 4) {
-        eventQueue.enqueue({
-          id: `chat_fish_${Date.now()}_${Math.random()}`,
-          timestamp: Date.now(),
-          actionType: 'WOODEN_FISH',
-          user,
-          payload: {
-            comment: commentRaw,
-            giftName: '',
-            diamondCount: 0,
-            repeatCount: 1,
-            intensity: 1
-          }
-        });
-      }
+      eventQueue.enqueue({
+        id: `chat_${Date.now()}_${Math.random()}`,
+        timestamp: Date.now(),
+        actionType: parsed.actionType,
+        user,
+        payload: {
+          comment: commentRaw,
+          command: parsed.command,
+          giftName: '',
+          diamondCount: 0,
+          repeatCount: 1
+        }
+      });
     });
 
-    // 3. GIFT -> Ánh xạ theo đúng bảng giá xu TikTok
+    // 5. GIFT -> Ánh xạ theo bảng giá xu TikTok sang hành động cúng dường 3D
     this.connection.on('gift', (data) => {
-      if (data.giftType === 1 && !data.repeatEnd) return; // Chống lặp combo đang bắn dở
+      if (data.giftType === 1 && !data.repeatEnd) return; // Chống lặp combo đang dở
 
       const diamondCount = Number(data.diamondCount) || 1;
       const repeatCount = Number(data.repeatCount) || 1;
@@ -256,43 +336,43 @@ class TikTokConnector {
       let tier = 'normal';
 
       if (totalCoins >= 400000) {
-        actionType = 'TIKTOK_UNIVERSE'; // Vũ trụ TikTok
+        actionType = 'TIKTOK_UNIVERSE'; // 449.999 xu: Vũ trụ TikTok
         tier = 'mythic';
       } else if (totalCoins >= 39000) {
-        actionType = 'GOLDEN_PHOENIX'; // Phượng hoàng lửa
+        actionType = 'GOLDEN_PHOENIX'; // 39.999 xu: Phượng hoàng lửa
         tier = 'legendary';
       } else if (totalCoins >= 29000) {
-        actionType = 'GOLDEN_LION'; // Con sư tử
+        actionType = 'GOLDEN_LION'; // 29.999 xu: Con sư tử
         tier = 'legendary';
       } else if (totalCoins >= 20000) {
-        actionType = 'GOLDEN_PAGODA'; // Lâu đài ảo
+        actionType = 'GOLDEN_PAGODA'; // 20.000 xu: Lâu đài ảo
         tier = 'epic';
       } else if (totalCoins >= 7000) {
-        actionType = 'THOUSAND_LANTERNS'; // Ô tô / Tiệc sinh nhật
+        actionType = 'THOUSAND_LANTERNS'; // 7.000 xu: Ô tô / Tiệc sinh nhật
         tier = 'epic';
       } else if (totalCoins >= 5000) {
-        actionType = 'BUDDHA_LIGHT'; // Máy bay / Nhà gỗ
+        actionType = 'BUDDHA_LIGHT'; // 5.000 xu: Máy bay / Nhà gỗ
         tier = 'rare';
       } else if (totalCoins >= 2900) {
-        actionType = 'PARADE_FLOAT'; // Xe máy gấu
+        actionType = 'PARADE_FLOAT'; // 2.999 xu: Xe máy Gấu nhịp điệu
         tier = 'rare';
       } else if (totalCoins >= 100) {
-        actionType = 'CONFETTI'; // Pháo hoa giấy
+        actionType = 'CONFETTI'; // 100 xu: Pháo hoa giấy
         tier = 'uncommon';
       } else if (totalCoins >= 99) {
-        actionType = 'BELL'; // Hạc giấy / Vương miện nhỏ -> Thỉnh Đại Hồng Chung
+        actionType = 'BELL'; // 99 xu: Hạc giấy / Vương miện nhỏ -> Thỉnh Đại Hồng Chung
         tier = 'uncommon';
       } else if (totalCoins >= 20) {
-        actionType = 'OFFERING_FRUIT'; // Nước hoa -> Dâng Mâm Hoa Quả
+        actionType = 'OFFERING_FRUIT'; // 20 xu: Nước hoa -> Mâm Hoa Quả
         tier = 'uncommon';
       } else if (totalCoins >= 10) {
-        actionType = 'LANTERN'; // Rosa / Cỏ bốn lá -> Thả Đèn Hoa Đăng
+        actionType = 'LANTERN'; // 10 xu: Rosa / Cỏ 4 lá -> Đèn Hoa Đăng
         tier = 'normal';
       } else if (totalCoins >= 5) {
-        actionType = 'INCENSE_3'; // Bắn tim / Quả đào -> Thắp 3 nén Tam Bảo
+        actionType = 'INCENSE_3'; // 5 xu: Bắn tim / Quả đào -> Thắp 3 nén Tam Bảo
         tier = 'normal';
       } else {
-        actionType = 'INCENSE_1'; // Hoa hồng, Tim -> Thắp 1 nén tâm hương
+        actionType = 'INCENSE_1'; // 1 xu: Hoa hồng, Tim -> Thắp 1 nén tâm hương
         tier = 'normal';
       }
 
@@ -306,6 +386,7 @@ class TikTokConnector {
           giftName,
           diamondCount,
           repeatCount,
+          totalCoins,
           tier
         }
       });
