@@ -1,0 +1,64 @@
+{
+  "viewer_joined": {
+    "eventId": "evt-001",
+    "sessionId": "session-demo",
+    "provider": "mock",
+    "type": "viewer_joined",
+    "occurredAt": "2026-11-03T02:00:00.000Z",
+    "user": {
+      "platformUserId": "user-123",
+      "nickname": "PhatTuAnNhien"
+    },
+    "payload": {
+      "identitySource": "viewer_join"
+    },
+    "dedupeKey": "mock:session-demo:join:user-123"
+  },
+  "comment": {
+    "eventId": "evt-002",
+    "sessionId": "session-demo",
+    "provider": "mock",
+    "type": "comment",
+    "occurredAt": "2026-11-03T02:00:03.000Z",
+    "user": {
+      "platformUserId": "user-123",
+      "nickname": "PhatTuAnNhien"
+    },
+    "payload": {
+      "text": "Nam mô"
+    },
+    "dedupeKey": "mock:session-demo:comment:evt-002"
+  },
+  "gift": {
+    "eventId": "evt-003",
+    "sessionId": "session-demo",
+    "provider": "mock",
+    "type": "gift",
+    "occurredAt": "2026-11-03T02:00:05.000Z",
+    "user": {
+      "platformUserId": "user-123",
+      "nickname": "PhatTuAnNhien"
+    },
+    "payload": {
+      "giftId": "REPLACE_WITH_REAL_GIFT_ID",
+      "giftName": "Hoa",
+      "quantity": 1,
+      "repeatCount": 1,
+      "repeatEnd": true
+    },
+    "dedupeKey": "mock:session-demo:gift:evt-003"
+  },
+  "share": {
+    "eventId": "evt-004",
+    "sessionId": "session-demo",
+    "provider": "mock",
+    "type": "share",
+    "occurredAt": "2026-11-03T02:00:08.000Z",
+    "user": {
+      "platformUserId": "user-123",
+      "nickname": "PhatTuAnNhien"
+    },
+    "payload": {},
+    "dedupeKey": "mock:session-demo:share:evt-004"
+  }
+}

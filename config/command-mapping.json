@@ -1,0 +1,86 @@
+{
+  "mode": "exact",
+  "defaultCooldownMs": 2500,
+  "commands": [
+    {
+      "id": "CHANT",
+      "name": "Niệm Phật",
+      "aliases": ["nam mô", "nam mo", "a di đà phật", "a di da phat", "nam mô a di đà phật", "nam mo a di da phat", "a di đà", "a di da", "!nammo", "!adida"],
+      "animation": "JOIN_HANDS_THEN_CHANT",
+      "enabled": true,
+      "cooldownMs": 3000,
+      "returnTo": "IDLE_KNEEL",
+      "points": 2
+    },
+    {
+      "id": "KNEEL",
+      "name": "Quỳ",
+      "aliases": ["quỳ", "quy", "!quy", "!quỳ"],
+      "animation": "KNEEL",
+      "enabled": true,
+      "cooldownMs": 2500,
+      "returnTo": "IDLE_KNEEL",
+      "points": 2
+    },
+    {
+      "id": "BOW",
+      "name": "Lạy Phật",
+      "aliases": ["lạy", "lay", "lạy phật", "lay phat", "!lay", "!lạy", "đảnh lễ", "danh le"],
+      "animation": "BOW",
+      "enabled": true,
+      "cooldownMs": 3000,
+      "returnTo": "IDLE_KNEEL",
+      "points": 3
+    },
+    {
+      "id": "STAND",
+      "name": "Đứng Lên",
+      "aliases": ["đứng", "dung", "đứng lên", "dung len", "!dung", "!đứng"],
+      "animation": "STAND",
+      "enabled": true,
+      "cooldownMs": 2000,
+      "returnTo": "IDLE_STAND",
+      "points": 2
+    },
+    {
+      "id": "PRAY",
+      "name": "Cầu An",
+      "aliases": ["cầu an", "cau an", "cầu nguyện", "cau nguyen", "!cauan", "!pray"],
+      "animation": "PRAY",
+      "enabled": true,
+      "cooldownMs": 3500,
+      "returnTo": "IDLE_KNEEL",
+      "points": 5
+    },
+    {
+      "id": "OFFER_INCENSE",
+      "name": "Dâng Hương",
+      "aliases": ["dâng hương", "dang huong", "thắp hương", "thap huong", "!huong", "!danghuong"],
+      "animation": "OFFER_INCENSE",
+      "enabled": true,
+      "cooldownMs": 4000,
+      "returnTo": "IDLE_KNEEL",
+      "points": 10
+    },
+    {
+      "id": "OFFER_FLOWER",
+      "name": "Dâng Hoa",
+      "aliases": ["dâng hoa", "dang hoa", "hoa", "!hoa", "!danghoa"],
+      "animation": "OFFER_FLOWER",
+      "enabled": true,
+      "cooldownMs": 4000,
+      "returnTo": "IDLE_KNEEL",
+      "points": 5
+    },
+    {
+      "id": "WALK_TO_ALTAR",
+      "name": "Đi Lễ",
+      "aliases": ["đi lễ", "di le", "!dile"],
+      "animation": "WALK_TO_ALTAR",
+      "enabled": true,
+      "cooldownMs": 5000,
+      "returnTo": "IDLE_KNEEL",
+      "points": 5
+    }
+  ]
+}

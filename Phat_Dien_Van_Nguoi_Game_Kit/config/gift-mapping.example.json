@@ -1,0 +1,40 @@
+{
+  "description": "Ví dụ cấu hình; thay giftId bằng ID thực tế từ provider. Không giả định tên/quy đổi gift cố định.",
+  "mappings": [
+    {
+      "giftId": "REPLACE_WITH_REAL_GIFT_ID",
+      "displayName": "Hoa",
+      "actionType": "avatar_action",
+      "animationId": "OFFER_FLOWER",
+      "sceneEffectId": null,
+      "enabled": false,
+      "cooldownMs": 3000,
+      "scoreRule": null
+    },
+    {
+      "giftId": "REPLACE_WITH_REAL_GIFT_ID",
+      "displayName": "Đèn / Nến",
+      "actionType": "both",
+      "animationId": "OFFER_INCENSE",
+      "sceneEffectId": "SMALL_GOLDEN_LIGHT",
+      "enabled": false,
+      "cooldownMs": 5000,
+      "scoreRule": null
+    },
+    {
+      "giftId": "REPLACE_WITH_REAL_GIFT_ID",
+      "displayName": "Gift hiệu ứng lớn",
+      "actionType": "scene_effect",
+      "animationId": null,
+      "sceneEffectId": "LOTUS_PETALS_AND_GLOW",
+      "enabled": false,
+      "cooldownMs": 10000,
+      "scoreRule": null
+    }
+  ],
+  "streakPolicy": {
+    "deduplicateByProviderEventId": true,
+    "useRepeatCountWhenPresent": true,
+    "treatCumulativeRepeatUpdatesAsSnapshots": true
+  }
+}

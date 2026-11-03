@@ -196,6 +196,7 @@ class App {
       { id: 'test-lay', action: 'BOW' },
       { id: 'test-dung', action: 'STAND' },
       { id: 'test-cauan', action: 'PRAY' },
+      { id: 'test-danghuong', action: 'OFFER_INCENSE' },
       { id: 'test-danghoa', action: 'OFFER_FLOWER' },
       { id: 'test-dile', action: 'WALK_TO_ALTAR' },
       { id: 'test-fish', action: 'WOODEN_FISH' },

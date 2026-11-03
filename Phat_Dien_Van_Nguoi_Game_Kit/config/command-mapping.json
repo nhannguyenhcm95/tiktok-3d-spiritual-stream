@@ -1,0 +1,62 @@
+{
+  "mode": "exact",
+  "defaultCooldownMs": 2500,
+  "commands": [
+    {
+      "id": "CHANT",
+      "aliases": ["nam mô", "nam mo"],
+      "animation": "JOIN_HANDS_THEN_CHANT",
+      "enabled": true,
+      "cooldownMs": 3000,
+      "returnTo": "IDLE_KNEEL"
+    },
+    {
+      "id": "KNEEL",
+      "aliases": ["quỳ", "quy"],
+      "animation": "KNEEL",
+      "enabled": true,
+      "cooldownMs": 2500,
+      "returnTo": "IDLE_KNEEL"
+    },
+    {
+      "id": "BOW",
+      "aliases": ["lạy", "lay", "lạy phật", "lay phat"],
+      "animation": "BOW",
+      "enabled": true,
+      "cooldownMs": 3000,
+      "returnTo": "IDLE_KNEEL"
+    },
+    {
+      "id": "STAND",
+      "aliases": ["đứng", "dung", "đứng lên", "dung len"],
+      "animation": "STAND",
+      "enabled": true,
+      "cooldownMs": 2000,
+      "returnTo": "IDLE_STAND"
+    },
+    {
+      "id": "PRAY",
+      "aliases": ["cầu an", "cau an", "cầu nguyện", "cau nguyen"],
+      "animation": "PRAY",
+      "enabled": true,
+      "cooldownMs": 3500,
+      "returnTo": "IDLE_KNEEL"
+    },
+    {
+      "id": "OFFER_INCENSE",
+      "aliases": ["dâng hương", "dang huong"],
+      "animation": "OFFER_INCENSE",
+      "enabled": true,
+      "cooldownMs": 5000,
+      "returnTo": "IDLE_KNEEL"
+    },
+    {
+      "id": "OFFER_FLOWER",
+      "aliases": ["dâng hoa", "dang hoa"],
+      "animation": "OFFER_FLOWER",
+      "enabled": true,
+      "cooldownMs": 5000,
+      "returnTo": "IDLE_KNEEL"
+    }
+  ]
+}

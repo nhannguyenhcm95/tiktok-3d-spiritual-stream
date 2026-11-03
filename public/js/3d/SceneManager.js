@@ -276,12 +276,18 @@ export class SceneManager {
     // 2. Kích hoạt Animation tương ứng của đúng nhân vật này
     switch (actionType) {
       case 'VIEWER_JOINED':
-        if (uid) this.avatarManager.playCommandAnimation(uid, 'NIEM_PHAT');
+        if (uid) this.avatarManager.playCommandAnimation(uid, 'CHANT');
         break;
 
+      case 'CHANT':
       case 'NIEM_PHAT':
-        if (uid) this.avatarManager.playCommandAnimation(uid, 'NIEM_PHAT');
+        if (uid) this.avatarManager.playCommandAnimation(uid, 'CHANT');
         this.tapWoodenFish();
+        break;
+
+      case 'OFFER_INCENSE':
+        if (uid) this.avatarManager.playCommandAnimation(uid, 'OFFER_INCENSE');
+        this.addIncense(1);
         break;
 
       case 'KNEEL':

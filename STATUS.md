@@ -65,7 +65,14 @@ Trạng thái tổng thể: **COMPLETED 100% (Hoàn thiện theo Master Prompt)*
 - Bật/tắt chế độ Auto-Mock.
 - Bật/tắt âm thanh tiếng mõ & chuông.
 - Nút xóa / reset toàn bộ Phật tử trong điện.
-- Đầy đủ nút Test: Test Join, Test Share, Test 8 lệnh Comment, Test 13 cấp bậc Gift.
+- Đầy đủ nút Test: Test Join, Test Share, Test 9 lệnh Comment, Test 13 cấp bậc Gift.
+
+### G. Tích Hợp Game Kit (`Phat_Dien_Van_Nguoi_Game_Kit`)
+- **Event Deduplication & Idempotency**: Tự động loại trừ các sự kiện trùng lặp (`seenEventIds` & `seenDedupeKeys`) do reconnect hoặc gift streak.
+- **Per-User Rate Limiting & Cooldown**: Chống spam comment theo từng `userId` và `commandId` (2.5s - 5s).
+- **Cấu hình Động JSON**: `config/command-mapping.json` và `config/gift-mapping.json` có thể đọc và cập nhật qua REST API (`/api/config/commands`, `/api/config/gifts`).
+- **Nghi Lễ Dâng Hương 3D (`OFFER_INCENSE`)**: Avatar cầm nén tâm hương đỏ có đóa lửa phát sáng và khói bay nhẹ trước khi cắm vào lư đồng.
+- **Palette Mỹ Thuật Chuẩn GDD**: Thảm gấm đỏ `#8E1F1B`, Vàng kim `#E6B84A`, Ánh sáng vàng ấm `#FFE8A3`, Gỗ lim `#5A321D`.
 
 ---
-*Cập nhật lúc: 2026-11-03 — Đã hoàn tất và kiểm thử toàn bộ hệ thống PHẬT ĐIỆN VẠN NGƯỜI.*
+*Cập nhật lúc: 2026-11-03 — Đã hoàn tất và kiểm thử toàn bộ hệ thống PHẬT ĐIỆN VẠN NGƯỜI kết hợp Game Kit.*

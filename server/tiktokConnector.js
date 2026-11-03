@@ -121,6 +121,7 @@ class TikTokConnector {
 
   /**
    * Command Parser chuẩn hóa tiếng Việt có dấu và không dấu
+   * Hỗ trợ cấu hình động từ command-mapping.json
    */
   _parseCommentCommand(rawComment) {
     if (!rawComment) return { actionType: 'COMMENT_CHAT', command: '' };
@@ -131,7 +132,32 @@ class TikTokConnector {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/đ/g, 'd');
 
-    // 1. Lệnh LẠY / LẠY PHẬT (BOW)
+    // 1. Kiểm tra cấu hình động từ command-mapping.json
+    const cmdConfig = eventQueue.getCommandConfig();
+    if (cmdConfig && Array.isArray(cmdConfig.commands)) {
+      for (const cmd of cmdConfig.commands) {
+        if (!cmd.enabled) continue;
+        if (cmd.aliases && cmd.aliases.some(alias => {
+          const aLower = alias.toLowerCase();
+          const aNoMark = aLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+          const prefix = '!' + aNoMark.replace(/\s+/g, '');
+          return lower === aLower || noMark === aNoMark || lower.startsWith(prefix);
+        })) {
+          return { actionType: cmd.id, command: cmd.id };
+        }
+      }
+    }
+
+    // 2. Lệnh DÂNG HƯƠNG (OFFER_INCENSE)
+    if (
+      lower === 'dâng hương' || lower === 'dang huong' ||
+      lower === 'thắp hương' || lower === 'thap huong' ||
+      lower.startsWith('!huong') || lower.startsWith('!danghuong')
+    ) {
+      return { actionType: 'OFFER_INCENSE', command: 'OFFER_INCENSE' };
+    }
+
+    // 3. Lệnh LẠY / LẠY PHẬT (BOW)
     if (
       lower === 'lạy' || lower === 'lay' ||
       lower === 'lạy phật' || lower === 'lay phat' ||
@@ -141,7 +167,7 @@ class TikTokConnector {
       return { actionType: 'BOW', command: 'BOW' };
     }
 
-    // 2. Lệnh NIỆM PHẬT / NAM MÔ (NIEM_PHAT)
+    // 4. Lệnh NIỆM PHẬT / NAM MÔ (CHANT / NIEM_PHAT)
     if (
       lower === 'nam mô' || lower === 'nam mo' ||
       lower === 'a di đà phật' || lower === 'a di da phat' ||
@@ -149,15 +175,15 @@ class TikTokConnector {
       lower === 'a di đà' || lower === 'a di da' ||
       lower.startsWith('!nammo') || lower.startsWith('!adida')
     ) {
-      return { actionType: 'NIEM_PHAT', command: 'NIEM_PHAT' };
+      return { actionType: 'CHANT', command: 'CHANT' };
     }
 
-    // 3. Lệnh QUỲ (KNEEL)
+    // 5. Lệnh QUỲ (KNEEL)
     if (lower === 'quỳ' || lower === 'quy' || lower.startsWith('!quy') || lower.startsWith('!quỳ')) {
       return { actionType: 'KNEEL', command: 'KNEEL' };
     }
 
-    // 4. Lệnh ĐỨNG / ĐỨNG LÊN (STAND)
+    // 6. Lệnh ĐỨNG / ĐỨNG LÊN (STAND)
     if (
       lower === 'đứng' || lower === 'dung' ||
       lower === 'đứng lên' || lower === 'dung len' ||
@@ -166,7 +192,7 @@ class TikTokConnector {
       return { actionType: 'STAND', command: 'STAND' };
     }
 
-    // 5. Lệnh CẦU AN / CẦU NGUYỆN (PRAY)
+    // 7. Lệnh CẦU AN / CẦU NGUYỆN (PRAY)
     if (
       lower === 'cầu an' || lower === 'cau an' ||
       lower === 'cầu nguyện' || lower === 'cau nguyen' ||
@@ -175,7 +201,7 @@ class TikTokConnector {
       return { actionType: 'PRAY', command: 'PRAY' };
     }
 
-    // 6. Lệnh DÂNG HOA (OFFER_FLOWER)
+    // 8. Lệnh DÂNG HOA (OFFER_FLOWER)
     if (
       lower === 'dâng hoa' || lower === 'dang hoa' ||
       lower === 'hoa' || lower.startsWith('!hoa') || lower.startsWith('!danghoa')
@@ -183,24 +209,24 @@ class TikTokConnector {
       return { actionType: 'OFFER_FLOWER', command: 'OFFER_FLOWER' };
     }
 
-    // 7. Lệnh ĐI LỄ (WALK_TO_ALTAR)
+    // 9. Lệnh ĐI LỄ (WALK_TO_ALTAR)
     if (lower === 'đi lễ' || lower === 'di le' || lower.startsWith('!dile')) {
       return { actionType: 'WALK_TO_ALTAR', command: 'WALK_TO_ALTAR' };
     }
 
-    // 8. Lời cầu nguyện tự do (PRAYER_TEXT)
+    // 10. Lời cầu nguyện tự do (PRAYER_TEXT)
     const prayerKeywords = ['cầu', 'ước', 'nguyện', 'bình an', 'sức khỏe', 'mạnh khỏe', 'thi cử', 'đỗ đạt', 'cha mẹ', 'gia đình', 'bình yên', 'may mắn'];
     const hasPrayer = prayerKeywords.some(kw => noMark.includes(kw));
     if (hasPrayer) {
       return { actionType: 'PRAYER_TEXT', command: 'PRAYER_TEXT' };
     }
 
-    // 9. Lệnh gõ mõ (WOODEN_FISH)
+    // 11. Lệnh gõ mõ (WOODEN_FISH)
     if (noMark.includes('go mo') || lower === 'mõ' || lower === 'mo' || lower === '1') {
       return { actionType: 'WOODEN_FISH', command: 'WOODEN_FISH' };
     }
 
-    // 10. Comment trò chuyện thông thường -> Hiện Comment Bubble trên đầu nhân vật
+    // 12. Comment trò chuyện thông thường -> Hiện Comment Bubble trên đầu nhân vật
     return { actionType: 'COMMENT_CHAT', command: 'CHAT' };
   }
 

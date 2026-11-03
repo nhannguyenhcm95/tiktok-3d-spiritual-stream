@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><style>.t{font: bold 26px Arial; fill:#2b2117}.s{font: 18px Arial; fill:#493b2e}.box{fill:#fff9ec;stroke:#9a6b25;stroke-width:3;rx:18}.arr{stroke:#76552a;stroke-width:4;fill:none;marker-end:url(#a)}</style><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#76552a"/></marker></defs>
+<rect width="1200" height="900" fill="#f7f0e2"/>
+<text x="600" y="55" text-anchor="middle" class="t" font-size="34">PHẬT ĐIỆN VẠN NGƯỜI — KIẾN TRÚC TỔNG THỂ</text>
+<rect class="box" x="350" y="90" width="500" height="105"/><text class="t" x="600" y="132" text-anchor="middle">TikTok LIVE / Live source</text><text class="s" x="600" y="165" text-anchor="middle">Join • Comment • Gift • Share • Follow • Viewer count</text>
+<path class="arr" d="M600 195 V240"/>
+<rect class="box" x="350" y="245" width="500" height="105"/><text class="t" x="600" y="288" text-anchor="middle">LiveEventProvider Adapter</text><text class="s" x="600" y="320" text-anchor="middle">Mock provider / verified live connector</text>
+<path class="arr" d="M600 350 V395"/>
+<rect class="box" x="270" y="400" width="660" height="140"/><text class="t" x="600" y="440" text-anchor="middle">Backend Event Pipeline</text><text class="s" x="600" y="475" text-anchor="middle">Normalize • Validate • Deduplicate • Resolve identity</text><text class="s" x="600" y="508" text-anchor="middle">Command parser • Gift mapping • Session • Score • Queue</text>
+<path class="arr" d="M600 540 V590"/>
+<rect class="box" x="350" y="595" width="500" height="95"/><text class="t" x="600" y="635" text-anchor="middle">Socket.IO session room</text><text class="s" x="600" y="665" text-anchor="middle">Player actions • Scene effects • Ranking • Notifications</text>
+<path class="arr" d="M600 690 V735"/>
+<rect class="box" x="130" y="740" width="440" height="110"/><text class="t" x="350" y="780" text-anchor="middle">3D Game Client</text><text class="s" x="350" y="813" text-anchor="middle">Scene • Avatars • Animations • UI overlay</text>
+<rect class="box" x="630" y="740" width="440" height="110"/><text class="t" x="850" y="780" text-anchor="middle">Admin Dashboard</text><text class="s" x="850" y="813" text-anchor="middle">Connect • Configure • Test • Logs • Metrics</text>
+<path class="arr" d="M480 790 H570"/><path class="arr" d="M720 790 H630"/>
+</svg>

@@ -1,0 +1,139 @@
+{
+  "streakPolicy": {
+    "deduplicateByProviderEventId": true,
+    "useRepeatCountWhenPresent": true,
+    "treatCumulativeRepeatUpdatesAsSnapshots": true
+  },
+  "mappings": [
+    {
+      "id": "INCENSE_1",
+      "displayName": "Hoa Hồng / GG / Tim",
+      "minCoins": 1,
+      "actionType": "both",
+      "animationId": "OFFER_INCENSE",
+      "sceneEffectId": "ADD_INCENSE_1",
+      "enabled": true,
+      "pointsPerUnit": 10
+    },
+    {
+      "id": "INCENSE_3",
+      "displayName": "Bắn Tim / Quả Đào",
+      "minCoins": 5,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "ADD_INCENSE_3",
+      "enabled": true,
+      "pointsPerUnit": 50
+    },
+    {
+      "id": "LANTERN",
+      "displayName": "Rosa / Cỏ Bốn Lá",
+      "minCoins": 10,
+      "actionType": "both",
+      "animationId": "OFFER_FLOWER",
+      "sceneEffectId": "LOTUS_LANTERN",
+      "enabled": true,
+      "pointsPerUnit": 100
+    },
+    {
+      "id": "OFFERING_FRUIT",
+      "displayName": "Nước Hoa",
+      "minCoins": 20,
+      "actionType": "both",
+      "animationId": "WALK_TO_ALTAR",
+      "sceneEffectId": "OFFERING_TRAY",
+      "enabled": true,
+      "pointsPerUnit": 200
+    },
+    {
+      "id": "BELL",
+      "displayName": "Hạc Giấy / Vương Miện",
+      "minCoins": 99,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "RING_GREAT_BELL",
+      "enabled": true,
+      "pointsPerUnit": 1000
+    },
+    {
+      "id": "CONFETTI",
+      "displayName": "Pháo Hoa Giấy / Bó Hoa",
+      "minCoins": 100,
+      "actionType": "scene_effect",
+      "animationId": "BOW",
+      "sceneEffectId": "CONFETTI_SHOWER",
+      "enabled": true,
+      "pointsPerUnit": 1500
+    },
+    {
+      "id": "PARADE_FLOAT",
+      "displayName": "Xe Máy Gấu Nhịp Điệu",
+      "minCoins": 2999,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "PARADE_AND_LIGHT",
+      "enabled": true,
+      "pointsPerUnit": 30000
+    },
+    {
+      "id": "BUDDHA_LIGHT",
+      "displayName": "Máy Bay Phản Lực / Nhà Gỗ",
+      "minCoins": 5000,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "BUDDHA_AURA_BURST",
+      "enabled": true,
+      "pointsPerUnit": 50000
+    },
+    {
+      "id": "THOUSAND_LANTERNS",
+      "displayName": "Ô Tô Thể Thao / Tiệc Sinh Nhật",
+      "minCoins": 7000,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "THOUSAND_LANTERNS_GLOW",
+      "enabled": true,
+      "pointsPerUnit": 70000
+    },
+    {
+      "id": "GOLDEN_PAGODA",
+      "displayName": "Lâu Đài Ảo",
+      "minCoins": 20000,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "GOLDEN_PAGODA_SUMMON",
+      "enabled": true,
+      "pointsPerUnit": 200000
+    },
+    {
+      "id": "GOLDEN_LION",
+      "displayName": "Con Sư Tử (Lion)",
+      "minCoins": 29999,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "GOLDEN_LION_GUARDIAN",
+      "enabled": true,
+      "pointsPerUnit": 300000
+    },
+    {
+      "id": "GOLDEN_PHOENIX",
+      "displayName": "Phượng Hoàng Lửa / Lôi Điểu",
+      "minCoins": 39999,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "GOLDEN_PHOENIX_FLIGHT",
+      "enabled": true,
+      "pointsPerUnit": 400000
+    },
+    {
+      "id": "TIKTOK_UNIVERSE",
+      "displayName": "Vũ Trụ TikTok (TikTok Universe)",
+      "minCoins": 449999,
+      "actionType": "both",
+      "animationId": "BOW",
+      "sceneEffectId": "UNIVERSE_SUPREME_CEREMONY",
+      "enabled": true,
+      "pointsPerUnit": 5000000
+    }
+  ]
+}

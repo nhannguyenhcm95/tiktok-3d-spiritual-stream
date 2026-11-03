@@ -105,7 +105,47 @@ app.post('/api/players/reset', (req, res) => {
   res.json({ success: true, message: 'Đã xóa toàn bộ nhân vật' });
 });
 
-// 4. POST /api/config - Cấu hình kênh TikTok và chế độ Auto-Mock
+// 4. GET /api/config/commands - Lấy cấu hình command mapping hiện tại
+app.get('/api/config/commands', (req, res) => {
+  res.json({ success: true, data: eventQueue.getCommandConfig() });
+});
+
+// 5. POST /api/config/commands - Cập nhật cấu hình command mapping
+app.post('/api/config/commands', (req, res) => {
+  if (req.body && typeof req.body === 'object') {
+    eventQueue.updateCommandConfig(req.body);
+    return res.json({ success: true, message: 'Đã cập nhật cấu hình lệnh', data: eventQueue.getCommandConfig() });
+  }
+  res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
+});
+
+// 6. GET /api/config/gifts - Lấy cấu hình gift mapping hiện tại
+app.get('/api/config/gifts', (req, res) => {
+  res.json({ success: true, data: eventQueue.getGiftConfig() });
+});
+
+// 7. POST /api/config/gifts - Cập nhật cấu hình gift mapping
+app.post('/api/config/gifts', (req, res) => {
+  if (req.body && typeof req.body === 'object') {
+    eventQueue.updateGiftConfig(req.body);
+    return res.json({ success: true, message: 'Đã cập nhật cấu hình quà tặng', data: eventQueue.getGiftConfig() });
+  }
+  res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
+});
+
+// 8. GET /api/stats - Thống kê chi tiết phiên LIVE
+app.get('/api/stats', (req, res) => {
+  res.json({
+    success: true,
+    session: {
+      activePlayers: eventQueue.getAllUsers().length,
+      queue: eventQueue.getStats(),
+      serverStatus: getServerStatus()
+    }
+  });
+});
+
+// 9. POST /api/config - Cấu hình kênh TikTok và chế độ Auto-Mock
 app.post('/api/config', async (req, res) => {
   const { tiktokUsername, autoMock } = req.body;
   let message = [];
@@ -144,12 +184,12 @@ app.post('/api/config', async (req, res) => {
   });
 });
 
-// 5. POST /api/mock/:actionType - Bắn sự kiện test trực tiếp từ Admin Dashboard
+// 10. POST /api/mock/:actionType - Bắn sự kiện test trực tiếp từ Admin Dashboard
 app.post('/api/mock/:actionType', (req, res) => {
   const { actionType } = req.params;
   const validTypes = [
     'VIEWER_JOINED', 'SHARE',
-    'NIEM_PHAT', 'KNEEL', 'BOW', 'STAND', 'PRAY', 'OFFER_FLOWER', 'WALK_TO_ALTAR',
+    'CHANT', 'NIEM_PHAT', 'KNEEL', 'BOW', 'STAND', 'PRAY', 'OFFER_INCENSE', 'OFFER_FLOWER', 'WALK_TO_ALTAR',
     'WOODEN_FISH', 'PRAYER_TEXT', 'COMMENT_CHAT',
     'INCENSE_1', 'INCENSE_3', 'LANTERN', 'OFFERING_FRUIT',
     'BELL', 'CONFETTI', 'PARADE_FLOAT', 'BUDDHA_LIGHT',

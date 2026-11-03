@@ -1,0 +1,5 @@
+PHAT DIEN VAN NGUOI GAME CREATION KIT
+Version: 1.0
+Language: Vietnamese
+Contents: docs, config examples, architecture diagrams, reference screenshots extracted from user-provided clip.
+Note: This is a specification/prompt package, not a compiled game or verified TikTok integration.

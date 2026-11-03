@@ -73,11 +73,11 @@ export class AvatarManager {
       });
     });
 
-    // Tạo các đệm thiền (bồ đoàn) tại mỗi chỗ ngồi
+    // Tạo các đệm thiền (bồ đoàn) tại mỗi chỗ ngồi theo palette GDD
     const cushionGeo = new THREE.CylinderGeometry(0.24, 0.26, 0.08, 14);
-    const cushionMat = new THREE.MeshLambertMaterial({ color: 0x9c6634 });
+    const cushionMat = new THREE.MeshLambertMaterial({ color: 0x8e1f1b }); // Đỏ gấm trầm
     const cushionRingGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.02, 14);
-    const cushionRingMat = new THREE.MeshBasicMaterial({ color: 0xd4a359 });
+    const cushionRingMat = new THREE.MeshBasicMaterial({ color: 0xe6b84a }); // Vàng kim sen
 
     this.seatingGrid.forEach((seat) => {
       const cushion = new THREE.Mesh(cushionGeo, cushionMat);
@@ -284,6 +284,19 @@ export class AvatarManager {
     flowerGroup.visible = false;
     bodyPivot.add(flowerGroup);
 
+    // 3b. Nén tâm hương dâng lễ (mặc định ẩn)
+    const incenseGroup = new THREE.Group();
+    const stickMat = new THREE.MeshBasicMaterial({ color: 0xb52418 });
+    const emberMat = new THREE.MeshBasicMaterial({ color: 0xff3b00 });
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.36, 6), stickMat);
+    stick.position.y = 0.18;
+    const ember = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), emberMat);
+    ember.position.y = 0.36;
+    incenseGroup.add(stick, ember);
+    incenseGroup.position.set(0, -0.22, 0.18);
+    incenseGroup.visible = false;
+    bodyPivot.add(incenseGroup);
+
     // 4. Tư thế chân ngồi kiết già / quỳ trên bồ đoàn
     const legsGroup = new THREE.Group();
     const legsMat = new THREE.MeshLambertMaterial({ color: variant.robeColor });
@@ -307,7 +320,8 @@ export class AvatarManager {
       leftArmPivot,
       rightArmPivot,
       legsGroup,
-      flowerGroup
+      flowerGroup,
+      incenseGroup
     };
   }
 
@@ -436,7 +450,7 @@ export class AvatarManager {
     const avatar = this.avatars.get(uid);
     if (!avatar) return;
 
-    const { bodyPivot, headGroup, leftArmPivot, rightArmPivot, flowerGroup } = avatar.meshData;
+    const { bodyPivot, headGroup, leftArmPivot, rightArmPivot, flowerGroup, incenseGroup } = avatar.meshData;
 
     // Reset các tween đang chạy trên avatar này
     gsap.killTweensOf(bodyPivot.rotation);
@@ -447,8 +461,40 @@ export class AvatarManager {
 
     avatar.isAnimating = true;
     flowerGroup.visible = false;
+    if (incenseGroup) incenseGroup.visible = false;
 
     switch (commandType) {
+      case 'OFFER_INCENSE': // Dâng nén tâm hương cúng dường
+        avatar.currentState = 'OFFER_INCENSE';
+        if (incenseGroup) {
+          incenseGroup.visible = true;
+          incenseGroup.scale.set(0.01, 0.01, 0.01);
+          gsap.to(incenseGroup.scale, { x: 1, y: 1, z: 1, duration: 0.4 });
+        }
+        gsap.to(leftArmPivot.rotation, { x: -1.0, z: 0.4, duration: 0.5 });
+        gsap.to(rightArmPivot.rotation, { x: -1.0, z: -0.4, duration: 0.5 });
+        gsap.to(bodyPivot.rotation, {
+          x: 0.4,
+          duration: 0.7,
+          yoyo: true,
+          repeat: 1,
+          ease: 'power1.inOut',
+          onComplete: () => {
+            if (incenseGroup) {
+              gsap.to(incenseGroup.scale, {
+                x: 0.01, y: 0.01, z: 0.01, duration: 0.3,
+                onComplete: () => {
+                  incenseGroup.visible = false;
+                  this._resetToIdle(avatar);
+                }
+              });
+            } else {
+              this._resetToIdle(avatar);
+            }
+          }
+        });
+        break;
+
       case 'BOW': // Lạy Phật: cúi mình gập người sâu về phía trước
         avatar.currentState = 'BOW';
         gsap.to(bodyPivot.rotation, {
@@ -480,9 +526,11 @@ export class AvatarManager {
         gsap.to(bodyPivot.position, { y: -0.05, duration: 0.9, yoyo: true, repeat: 1 });
         break;
 
-      case 'NIEM_PHAT': // Chắp tay niệm Phật trang nghiêm
+      case 'CHANT': // Chắp tay niệm Phật trang nghiêm
+      case 'JOIN_HANDS_THEN_CHANT':
+      case 'NIEM_PHAT':
       case 'JOIN_HANDS':
-        avatar.currentState = 'NIEM_PHAT';
+        avatar.currentState = 'CHANT';
         gsap.to(leftArmPivot.rotation, { x: -0.85, y: 0, z: 0.85, duration: 0.45, ease: 'power2.out' });
         gsap.to(rightArmPivot.rotation, { x: -0.85, y: 0, z: -0.85, duration: 0.45, ease: 'power2.out' });
         gsap.to(headGroup.rotation, {
@@ -644,3 +692,4 @@ export class AvatarManager {
     return this.avatars.size;
   }
 }
+
