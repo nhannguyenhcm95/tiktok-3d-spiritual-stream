@@ -9,7 +9,7 @@ import * as THREE from 'three';
 export class TempleWorld {
   constructor(scene, collisionSystem) {
     this.scene = scene;
-    this.collision = collisionSystem;
+    this.collision = collisionSystem || { addBoxCollider: () => {}, addCircleCollider: () => {} };
     this.zones = [];
 
     // Vật liệu dùng chung (Zero-Lag Material reuse)

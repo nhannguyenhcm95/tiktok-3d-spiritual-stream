@@ -30,6 +30,13 @@ const AUTO_MOCK_INIT = process.env.AUTO_MOCK !== 'false';
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// API ghi nhận log & lỗi từ Client Browser để chuẩn đoán tức thì
+app.post('/api/client-log', (req, res) => {
+  console.log('🔴 [CLIENT BROWSER LOG]:', JSON.stringify(req.body));
+  res.sendStatus(200);
+});
+
 // Phục vụ thư mục gốc trước (chứa index.html Niệm Phật Cầu An 3D, css/, js/)
 app.use(express.static(path.join(__dirname, '..')));
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));

@@ -71,7 +71,7 @@ class GameApp {
     this.collisionSystem = new CollisionSystem();
 
     // 2. Thế giới Chùa Việt 3D
-    this.templeWorld = new TempleWorld(this.scene);
+    this.templeWorld = new TempleWorld(this.scene, this.collisionSystem);
     // Nạp toàn bộ collider vào hệ thống va chạm
     const colliders = this.templeWorld.getColliders();
     this.collisionSystem.addColliders(colliders);
@@ -648,7 +648,7 @@ class GameApp {
     // 2. Cập nhật Hiệu ứng VFX Môi trường
     if (this.vfxManager) {
       const pPos = this.playerController ? this.playerController.getPosition() : { x: 0, y: 0, z: 0 };
-      this.vfxManager.update(delta, pPos);
+      this.vfxManager.update(delta, elapsed, pPos);
     }
 
     // 3. Cập nhật Thế giới Chùa 3D (Hào quang, hoa sen trôi)

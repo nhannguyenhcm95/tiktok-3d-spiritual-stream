@@ -4,6 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Niệm Phật Cầu An & Đạo Tràng Siêu Độ - Chùa An Lạc 3D</title>
+
+  <script>
+    // Bắt toàn bộ lỗi từ trình duyệt và gửi về Server để chẩn đoán
+    window.onerror = function(msg, url, line, col, error) {
+      fetch('/api/client-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'WINDOW_ERROR', msg, url, line, col, stack: error ? error.stack : '' })
+      }).catch(()=>{});
+    };
+    window.addEventListener('unhandledrejection', function(event) {
+      fetch('/api/client-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'UNHANDLED_PROMISE', reason: event.reason ? (event.reason.stack || event.reason) : '' })
+      }).catch(()=>{});
+    });
+    const _origLog = console.log;
+    console.log = function(...args) {
+      _origLog.apply(console, args);
+      fetch('/api/client-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'LOG', text: args.join(' ') })
+      }).catch(()=>{});
+    };
+    const _origErr = console.error;
+    console.error = function(...args) {
+      _origErr.apply(console, args);
+      fetch('/api/client-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'ERROR', text: args.join(' ') })
+      }).catch(()=>{});
+    };
+  </script>
   
   <meta name="description" content="Web Game 3D Niệm Phật Cầu An & Đạo Tràng Siêu Độ - Trải nghiệm đi chùa Việt 3D, kết ấn, niệm Phật xoay tràng hạt 108 hạt, thỉnh chuông, gõ mõ chấm tâm an và xin quẻ may mắn.">
   <meta name="theme-color" content="#0f141d">

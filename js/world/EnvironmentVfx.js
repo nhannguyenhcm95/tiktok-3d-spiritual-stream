@@ -310,15 +310,18 @@ export class EnvironmentVfx {
   /**
    * Cập nhật chuyển động hoạt cảnh mỗi khung hình
    */
-  update(dt, elapsed) {
+  update(dt, elapsedOrPos, playerPos) {
+    this.elapsedTime = (this.elapsedTime || 0) + (dt || 0.016);
+    const time = (typeof elapsedOrPos === 'number') ? elapsedOrPos : this.elapsedTime;
+
     // 1. Cập nhật khói hương bốc lên
     if (this.smokePoints) {
       const posAttr = this.smokePoints.geometry.attributes.position;
       const count = posAttr.count;
       for (let i = 0; i < count; i++) {
         let y = posAttr.getY(i) + dt * 0.9;
-        let x = posAttr.getX(i) + Math.sin(elapsed * 1.5 + i) * 0.008;
-        let z = posAttr.getZ(i) + Math.cos(elapsed * 1.2 + i) * 0.008;
+        let x = posAttr.getX(i) + Math.sin(time * 1.5 + i) * 0.008;
+        let z = posAttr.getZ(i) + Math.cos(time * 1.2 + i) * 0.008;
 
         if (y > 5.5) {
           y = 0.1;
@@ -334,8 +337,8 @@ export class EnvironmentVfx {
     if (this.fireflies) {
       const posAttr = this.fireflies.geometry.attributes.position;
       for (let i = 0; i < posAttr.count; i++) {
-        let y = posAttr.getY(i) + Math.sin(elapsed * 2.0 + i) * 0.004;
-        let x = posAttr.getX(i) + Math.cos(elapsed * 1.4 + i) * 0.005;
+        let y = posAttr.getY(i) + Math.sin(time * 2.0 + i) * 0.004;
+        let x = posAttr.getX(i) + Math.cos(time * 1.4 + i) * 0.005;
         posAttr.setY(i, y);
         posAttr.setX(i, x);
       }
@@ -345,8 +348,8 @@ export class EnvironmentVfx {
     // 3. Cập nhật linh quang u uất đung đưa
     this.spiritOrbs.forEach((item) => {
       if (!item.isPurified) {
-        item.mesh.position.y = item.basePos.y + Math.sin(elapsed * 2.2 + item.phase) * 0.22;
-        item.mesh.position.x = item.basePos.x + Math.cos(elapsed * 1.4 + item.phase) * 0.14;
+        item.mesh.position.y = item.basePos.y + Math.sin(time * 2.2 + item.phase) * 0.22;
+        item.mesh.position.x = item.basePos.x + Math.cos(time * 1.4 + item.phase) * 0.14;
       }
     });
 
