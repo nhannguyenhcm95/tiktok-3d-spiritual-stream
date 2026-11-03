@@ -1,6 +1,7 @@
 /**
  * TikTok Live Connector Module
- * Kết nối TikTok Live thời gian thực, tự động reconnect và ánh xạ sự kiện sang Event Queue
+ * Kết nối TikTok Live thời gian thực, tự động reconnect và ánh xạ sự kiện
+ * sang các hoạt động tâm linh chùa Việt theo đúng bảng giá cúng dường.
  */
 
 const { WebcastPushConnection } = require('tiktok-live-connector');
@@ -13,16 +14,11 @@ class TikTokConnector {
     this.isConnected = false;
     this.reconnectTimeout = null;
     this.reconnectAttempt = 0;
-    this.maxReconnectDelay = 30000; // Tối đa 30s
-    this.likeCounters = new Map(); // Đếm like theo từng user hoặc tổng tích lũy
+    this.maxReconnectDelay = 30000;
     this.totalAccumulatedLikes = 0;
     this.onStatusChangeCallback = null;
   }
 
-  /**
-   * Đăng ký callback khi trạng thái kết nối thay đổi
-   * @param {Function} cb
-   */
   onStatusChange(cb) {
     this.onStatusChangeCallback = cb;
   }
@@ -41,9 +37,6 @@ class TikTokConnector {
     };
   }
 
-  /**
-   * Ngắt kết nối hiện tại nếu có
-   */
   async disconnectTikTok() {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
@@ -55,7 +48,7 @@ class TikTokConnector {
       try {
         await this.connection.disconnect();
       } catch (err) {
-        console.warn('[TikTokConnector] Warning on disconnect:', err.message);
+        console.warn('[TikTokConnector] Cảnh báo khi ngắt kết nối:', err.message);
       }
       this.connection = null;
     }
@@ -65,10 +58,6 @@ class TikTokConnector {
     console.log('[TikTokConnector] Đã ngắt kết nối TikTok Live.');
   }
 
-  /**
-   * Kết nối tới một kênh TikTok Live bất kỳ
-   * @param {string} username Tên tài khoản TikTok (bỏ qua dấu @ nếu có)
-   */
   async connectToTikTok(username) {
     if (!username || typeof username !== 'string') {
       console.warn('[TikTokConnector] Username không hợp lệ.');
@@ -78,21 +67,15 @@ class TikTokConnector {
     const cleanUsername = username.replace(/^@/, '').trim();
     if (!cleanUsername) return false;
 
-    // Nếu đang kết nối cùng kênh, không cần kết nối lại
     if (this.isConnected && this.currentUsername === cleanUsername) {
       return true;
     }
 
-    // Ngắt kết nối cũ nếu có
     await this.disconnectTikTok();
-
     this.currentUsername = cleanUsername;
     return this._initiateConnection();
   }
 
-  /**
-   * Khởi tạo đối tượng WebcastPushConnection và đăng ký các sự kiện
-   */
   async _initiateConnection() {
     try {
       console.log(`[TikTokConnector] Đang kết nối tới TikTok Live của @${this.currentUsername}...`);
@@ -112,7 +95,7 @@ class TikTokConnector {
       const state = await this.connection.connect();
       this.isConnected = true;
       this.reconnectAttempt = 0;
-      console.log(`[TikTokConnector] Kết nối thành công tới phòng Live của @${this.currentUsername} (Room ID: ${state.roomId})`);
+      console.log(`[TikTokConnector] Kết nối thành công tới phòng Live @${this.currentUsername} (Room ID: ${state.roomId})`);
       this.notifyStatus();
       return true;
     } catch (err) {
@@ -124,16 +107,11 @@ class TikTokConnector {
     }
   }
 
-  /**
-   * Cơ chế tự động thử kết nối lại với Exponential Backoff (3s, 6s, 12s, 24s...)
-   */
   _scheduleReconnect() {
     if (!this.currentUsername) return;
-
     this.reconnectAttempt++;
-    // Exponential backoff: 3000 * 2^(attempt-1), trần maxReconnectDelay
     const delay = Math.min(3000 * Math.pow(2, this.reconnectAttempt - 1), this.maxReconnectDelay);
-    console.log(`[TikTokConnector] Sẽ thử kết nối lại lần ${this.reconnectAttempt} sau ${(delay / 1000).toFixed(1)} giây...`);
+    console.log(`[TikTokConnector] Thử kết nối lại lần ${this.reconnectAttempt} sau ${(delay / 1000).toFixed(1)}s...`);
 
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
     this.reconnectTimeout = setTimeout(() => {
@@ -141,13 +119,9 @@ class TikTokConnector {
     }, delay);
   }
 
-  /**
-   * Đăng ký các event listeners từ TikTok Live Connector
-   */
   _setupListeners() {
     if (!this.connection) return;
 
-    // Sự kiện ngắt kết nối từ TikTok
     this.connection.on('disconnected', () => {
       console.warn('[TikTokConnector] Mất kết nối từ TikTok Live.');
       this.isConnected = false;
@@ -156,18 +130,17 @@ class TikTokConnector {
     });
 
     this.connection.on('streamEnd', () => {
-      console.warn('[TikTokConnector] Luồng Live của người dùng đã kết thúc.');
+      console.warn('[TikTokConnector] Luồng Live đã kết thúc.');
       this.isConnected = false;
       this.notifyStatus();
     });
 
     this.connection.on('error', (err) => {
-      console.error('[TikTokConnector] Lỗi kết nối:', err.message);
+      console.error('[TikTokConnector] Lỗi:', err.message);
     });
 
-    // 1. Sự kiện LIKE
+    // 1. LIKE -> Tích lũy 10 like = 1 tiếng gõ mõ
     this.connection.on('like', (data) => {
-      // Mỗi 10 lượt like tích lũy -> sinh 1 sự kiện gõ mõ WOODEN_FISH
       const likeCount = data.likeCount || 1;
       this.totalAccumulatedLikes += likeCount;
 
@@ -181,7 +154,7 @@ class TikTokConnector {
           actionType: 'WOODEN_FISH',
           user: {
             uniqueId: data.uniqueId || 'like_user',
-            nickname: data.nickname || data.uniqueId || 'Khán Giả',
+            nickname: data.nickname || data.uniqueId || 'Khách Thả Tim',
             avatarUrl: data.profilePictureUrl || 'https://via.placeholder.com/100'
           },
           payload: {
@@ -189,26 +162,46 @@ class TikTokConnector {
             giftName: '',
             diamondCount: 0,
             repeatCount: 1,
-            intensity: Math.min(triggers, 5) // Tăng intensity nếu dồn nhiều like
+            intensity: Math.min(triggers, 4)
           }
         });
       }
     });
 
-    // 2. Sự kiện CHAT (Comment)
+    // 2. CHAT -> Phân tích câu: "A di đà phật" (Vái lạy), Lời cầu an, Gõ mõ
     this.connection.on('chat', (data) => {
       const commentRaw = data.comment || '';
       const lower = commentRaw.toLowerCase();
 
       const user = {
         uniqueId: data.uniqueId || 'chat_user',
-        nickname: data.nickname || data.uniqueId || 'Thiện Nam Tín Nữ',
+        nickname: data.nickname || data.uniqueId || 'Khách Hành Hương',
         avatarUrl: data.profilePictureUrl || 'https://via.placeholder.com/100'
       };
 
-      // Từ khóa Lời cầu nguyện
-      const prayerKeywords = ['cầu', 'ước', 'nguyện', 'bình an', 'sức khỏe', 'tài lộc', 'gia đạo', 'may mắn', 'bình yên'];
-      const hasPrayer = prayerKeywords.some((kw) => lower.includes(kw));
+      // Từ khóa Niệm Phật Vái Lạy
+      const buddhaWords = ['a di đà', 'a di da', 'nam mô', 'nam mo', 'phật', 'phat', 'vái', 'lạy', 'bồ tát', 'bo tat', 'quan âm', 'chúc phúc'];
+      const hasBuddha = buddhaWords.some(kw => lower.includes(kw));
+
+      if (hasBuddha) {
+        eventQueue.enqueue({
+          id: `chat_bow_${Date.now()}_${Math.random()}`,
+          timestamp: Date.now(),
+          actionType: 'BOW',
+          user,
+          payload: {
+            comment: commentRaw,
+            giftName: '',
+            diamondCount: 0,
+            repeatCount: 1
+          }
+        });
+        return;
+      }
+
+      // Từ khóa Lời Cầu An
+      const prayerWords = ['cầu', 'ước', 'nguyện', 'bình an', 'sức khỏe', 'mạnh khỏe', 'thi cử', 'đỗ đạt', 'cha mẹ', 'gia đình', 'bình yên', 'may mắn'];
+      const hasPrayer = prayerWords.some(kw => lower.includes(kw));
 
       if (hasPrayer) {
         eventQueue.enqueue({
@@ -220,19 +213,14 @@ class TikTokConnector {
             comment: commentRaw,
             giftName: '',
             diamondCount: 0,
-            repeatCount: 1,
-            intensity: 1
+            repeatCount: 1
           }
         });
         return;
       }
 
-      // Từ khóa Gõ Mõ
-      const woodenKeywords = ['gõ', 'mõ', 'nam mô', 'a di đà', 'amen', '1', 'công đức', 'mo', 'go', 'thanh tam'];
-      const hasWooden = woodenKeywords.some((kw) => lower.includes(kw));
-
-      if (hasWooden || commentRaw.trim().length <= 5) {
-        // Comment ngắn hoặc chứa từ khóa mõ -> Gõ mõ
+      // Comment ngắn hoặc từ khóa mõ
+      if (lower.includes('gõ') || lower.includes('mõ') || lower.includes('1') || commentRaw.trim().length <= 4) {
         eventQueue.enqueue({
           id: `chat_fish_${Date.now()}_${Math.random()}`,
           timestamp: Date.now(),
@@ -249,12 +237,9 @@ class TikTokConnector {
       }
     });
 
-    // 3. Sự kiện GIFT (Quà tặng)
+    // 3. GIFT -> Ánh xạ theo đúng bảng giá xu TikTok
     this.connection.on('gift', (data) => {
-      // Chống lặp quà combo: Bỏ qua nếu data.giftType === 1 && !data.repeatEnd
-      if (data.giftType === 1 && !data.repeatEnd) {
-        return;
-      }
+      if (data.giftType === 1 && !data.repeatEnd) return; // Chống lặp combo đang bắn dở
 
       const diamondCount = Number(data.diamondCount) || 1;
       const repeatCount = Number(data.repeatCount) || 1;
@@ -267,13 +252,48 @@ class TikTokConnector {
         avatarUrl: data.profilePictureUrl || 'https://via.placeholder.com/100'
       };
 
-      let actionType = 'INCENSE';
-      if (totalCoins >= 100) {
-        actionType = 'BELL'; // Quà lớn >= 100 xu: Thỉnh Đại Hồng Chung
-      } else if (totalCoins >= 6) {
-        actionType = 'LANTERN'; // Quà 6-99 xu: Thả Đèn Hoa Đăng
+      let actionType = 'INCENSE_1';
+      let tier = 'normal';
+
+      if (totalCoins >= 400000) {
+        actionType = 'TIKTOK_UNIVERSE'; // Vũ trụ TikTok
+        tier = 'mythic';
+      } else if (totalCoins >= 39000) {
+        actionType = 'GOLDEN_PHOENIX'; // Phượng hoàng lửa
+        tier = 'legendary';
+      } else if (totalCoins >= 29000) {
+        actionType = 'GOLDEN_LION'; // Con sư tử
+        tier = 'legendary';
+      } else if (totalCoins >= 20000) {
+        actionType = 'GOLDEN_PAGODA'; // Lâu đài ảo
+        tier = 'epic';
+      } else if (totalCoins >= 7000) {
+        actionType = 'THOUSAND_LANTERNS'; // Ô tô / Tiệc sinh nhật
+        tier = 'epic';
+      } else if (totalCoins >= 5000) {
+        actionType = 'BUDDHA_LIGHT'; // Máy bay / Nhà gỗ
+        tier = 'rare';
+      } else if (totalCoins >= 2900) {
+        actionType = 'PARADE_FLOAT'; // Xe máy gấu
+        tier = 'rare';
+      } else if (totalCoins >= 100) {
+        actionType = 'CONFETTI'; // Pháo hoa giấy
+        tier = 'uncommon';
+      } else if (totalCoins >= 99) {
+        actionType = 'BELL'; // Hạc giấy / Vương miện nhỏ -> Thỉnh Đại Hồng Chung
+        tier = 'uncommon';
+      } else if (totalCoins >= 20) {
+        actionType = 'OFFERING_FRUIT'; // Nước hoa -> Dâng Mâm Hoa Quả
+        tier = 'uncommon';
+      } else if (totalCoins >= 10) {
+        actionType = 'LANTERN'; // Rosa / Cỏ bốn lá -> Thả Đèn Hoa Đăng
+        tier = 'normal';
+      } else if (totalCoins >= 5) {
+        actionType = 'INCENSE_3'; // Bắn tim / Quả đào -> Thắp 3 nén Tam Bảo
+        tier = 'normal';
       } else {
-        actionType = 'INCENSE'; // Quà 1-5 xu: Thắp Nhang/Nến
+        actionType = 'INCENSE_1'; // Hoa hồng, Tim -> Thắp 1 nén tâm hương
+        tier = 'normal';
       }
 
       eventQueue.enqueue({
@@ -282,18 +302,16 @@ class TikTokConnector {
         actionType,
         user,
         payload: {
-          comment: `Tặng ${giftName} (x${repeatCount})`,
+          comment: `Cúng dường ${giftName} (x${repeatCount}) - ${totalCoins.toLocaleString('vi-VN')} xu`,
           giftName,
           diamondCount,
           repeatCount,
-          intensity: Math.min(Math.ceil(totalCoins / 10), 5)
+          tier
         }
       });
     });
   }
 }
 
-// Export singleton instance
 const tiktokConnector = new TikTokConnector();
 module.exports = tiktokConnector;
-

@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>3D TikTok Interactive Spiritual Stream - Đi Chùa & Nhà Thờ Online 3D</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lên Chùa Cầu An — Không Gian Tịnh Tâm 3D</title>
 
-  <!-- Three.js & GSAP Importmap -->
+  <!-- Importmap Three.js & GSAP -->
   <script type="importmap">
     {
       "imports": {
@@ -16,129 +15,118 @@
     }
   </script>
 
-  <!-- Socket.io Client -->
+  <link rel="stylesheet" href="/css/style.css" />
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <!-- Khung chứa ứng dụng chuẩn 9:16 cho OBS Browser Source & Mobile -->
-  <div id="app-wrapper">
-    <!-- WebGL Three.js Container (Nằm dưới cùng, z-index: 1) -->
-    <div id="webgl-container"></div>
+  <!-- KHUNG CẢNH 3D -->
+  <div id="webgl-container"></div>
+  <div id="ai-bubbles"></div>
 
-    <!-- HUD Overlay Layer (z-index: 10, tuân thủ TikTok Safe-Zone) -->
-    <div id="hud-layer">
-      <!-- 1. Vùng trên cùng (Top 20% Safe-Zone) -->
-      <header class="hud-top-section">
-        <!-- Bảng Tổng Công Đức -->
-        <div id="merit-box">
-          <div class="merit-badge">
-            <span class="merit-icon">✨</span>
-            <span class="merit-label">TỔNG CÔNG ĐỨC TOÀN PHÒNG</span>
-          </div>
-          <div id="merit-counter">0</div>
-        </div>
-
-        <!-- Bảng Vàng Công Đức (Top 3) -->
-        <div id="leaderboard-box">
-          <div class="leaderboard-title">
-            <span class="trophy-icon">🏆</span>
-            <span>BẢNG VÀNG CÔNG ĐỨC</span>
-          </div>
-          <div id="leaderboard-list">
-            <!-- Render động bởi HudManager -->
-            <div class="leaderboard-empty">Đang tích công đức...</div>
-          </div>
-        </div>
-      </header>
-
-      <!-- 2. Vùng giữa màn hình (Mid 50% Safe-Zone) -->
-      <main class="hud-middle-section">
-        <!-- Vùng thông báo Toast (Thắp Nhang / Thỉnh Chuông / Thả Đèn) -->
-        <div id="toast-container"></div>
-
-        <!-- Vùng hiển thị Lời cầu nguyện lung linh (Cạnh phải màn hình) -->
-        <div id="prayer-wall"></div>
-      </main>
-
-      <!-- 3. Vùng dưới màn hình (Bottom 30% Safe-Zone) -->
-      <!-- Góc trái để trống cho khung chat TikTok Live -->
-      <footer class="hud-bottom-section">
-        <div class="interaction-guide">
-          <div class="guide-item"><span class="guide-key">Chat 'Nam Mô'</span> : Gõ Mõ (+1)</div>
-          <div class="guide-item"><span class="guide-key">Tặng Hoa Hồng</span> : Thắp Nhang (+10)</div>
-          <div class="guide-item"><span class="guide-key">Thả Đèn / Cầu Nguyện</span> : Hoa Đăng (+50)</div>
-          <div class="guide-item"><span class="guide-key">Quà Lớn</span> : Thỉnh Đại Hồng Chung (+200)</div>
-        </div>
-      </footer>
+  <!-- THANH THÔNG TIN TRÊN CÙNG -->
+  <div id="hud-top">
+    <div class="hud-card">
+      <div class="temple-title">🪷 Chùa An Lạc</div>
+      <div class="visitor-count" id="visitor-counter">Hôm nay có 1.248 người lên chùa cầu an</div>
     </div>
-
-    <!-- Bảng điều khiển Debug Panel ẩn (Bật/Tắt bằng phím D, z-index: 100) -->
-    <div id="debug-panel" class="hidden">
-      <div class="debug-header">
-        <h3>⚙️ BẢNG ĐIỀU KHIỂN LIVESTREAM</h3>
-        <button id="btn-close-debug" class="btn-close" title="Đóng">&times;</button>
-      </div>
-
-      <div class="debug-body">
-        <!-- Trạng thái kết nối -->
-        <div class="debug-row status-indicator">
-          <span>Trạng thái:</span>
-          <span id="debug-status-text" class="status-offline">Offline</span>
-        </div>
-
-        <!-- Kết nối TikTok Live thật -->
-        <div class="debug-row">
-          <label for="input-tiktok-username">Kênh TikTok Live:</label>
-          <div class="input-group">
-            <input type="text" id="input-tiktok-username" placeholder="@username_tiktok" />
-            <button id="btn-connect-tiktok" class="btn-primary">Kết nối</button>
-          </div>
-        </div>
-
-        <!-- Bật/Tắt Auto-Mock -->
-        <div class="debug-row flex-between">
-          <span>Chế độ Auto-Mock:</span>
-          <button id="btn-toggle-mock" class="btn-toggle on">Auto-Mock: BẬT</button>
-        </div>
-
-        <!-- Đổi Theme Chùa / Nhà Thờ -->
-        <div class="debug-row flex-between">
-          <span>Không gian Tâm linh:</span>
-          <div class="theme-switch-group">
-            <button id="btn-theme-temple" class="btn-theme active">Chùa 3D</button>
-            <button id="btn-theme-church" class="btn-theme">Nhà Thờ 3D</button>
-          </div>
-        </div>
-
-        <!-- Bật/Tắt Âm thanh -->
-        <div class="debug-row flex-between">
-          <span>Âm thanh Web Audio:</span>
-          <button id="btn-toggle-audio" class="btn-audio unmuted">🔊 Đang Bật</button>
-        </div>
-
-        <!-- 5 Nút Test Nhanh Sự Kiện -->
-        <div class="debug-row">
-          <label>Kích hoạt kiểm thử sự kiện nhanh:</label>
-          <div class="test-btn-grid">
-            <button id="btn-test-fish" class="btn-test">🥢 Gõ Mõ</button>
-            <button id="btn-test-incense" class="btn-test">🕯️ Thắp Nhang</button>
-            <button id="btn-test-bell" class="btn-test">🔔 Thỉnh Chuông</button>
-            <button id="btn-test-lantern" class="btn-test">🏮 Thả Đèn</button>
-            <button id="btn-test-prayer" class="btn-test">📜 Cầu Nguyện</button>
-          </div>
-        </div>
-      </div>
-      <div class="debug-footer">
-        <small>💡 Bấm phím <strong>D</strong> để ẩn/hiện bảng này. Tương thích 100% OBS Browser Source.</small>
-      </div>
+    <div class="hud-actions">
+      <button class="icon-btn" id="btn-notebook">📖 Sổ cầu an</button>
+      <button class="icon-btn" id="btn-share-top">🖼️ Chia sẻ</button>
+      <button class="icon-btn" id="btn-audio">🔊 Âm thanh</button>
     </div>
-
-    <!-- Nút nhỏ ở góc để mở nhanh Debug Panel trên màn hình cảm ứng / chuột -->
-    <button id="debug-floating-btn" title="Mở bảng điều khiển (Phím D)">⚙️</button>
   </div>
 
-  <!-- Entry Point Frontend Module -->
+  <!-- THÔNG BÁO NHẸ -->
+  <div id="toast-msg">Tâm thành lễ Phật, bình an tự khắc tìm về.</div>
+
+  <!-- ĐIỀU KHIỂN DI CHUYỂN & NÚT TƯƠNG TÁC -->
+  <div id="joystick-zone" title="Kéo để di chuyển">
+    <div id="joystick-knob"></div>
+  </div>
+  <div id="action-btn-wrap">
+    <button id="action-btn">🙏 Thắp hương</button>
+  </div>
+  <div id="controls-hint">Kéo cần ảo hoặc bấm WASD / Mũi tên để đi dạo • Kéo màn hình để xoay góc nhìn</div>
+
+  <!-- 1. MÀN HÌNH CHÀO -->
+  <div class="overlay-screen" id="welcome-screen">
+    <div class="modal-box">
+      <div style="font-size: 42px; margin-bottom: 6px;">🪷</div>
+      <h1>Lên Chùa Cầu An</h1>
+      <p>Không gian chùa Việt cổ kính lúc hoàng hôn. Hãy bước qua cổng Tam Quan, lắng nghe tiếng chuông chùa và gửi gắm những lời chúc thiện lành.</p>
+      <input type="text" id="player-name-input" class="text-input" maxlength="24" placeholder="Nhập tên của bạn (ví dụ: Minh An)..." />
+      <div class="btn-row">
+        <button class="primary-btn" id="btn-enter-temple">Vào Chùa 🙏</button>
+      </div>
+      <div class="disclaimer-note">Không đăng nhập • Không thu thập dữ liệu • Không công đức bằng tiền</div>
+    </div>
+  </div>
+
+  <!-- 2. HƯỚNG DẪN 3 BƯỚC LẦN ĐẦU -->
+  <div class="overlay-screen" id="tutorial-modal" style="display:none;">
+    <div class="modal-box">
+      <h2>Hướng Dẫn Dạo Chùa</h2>
+      <div style="text-align:left; margin: 14px 0; font-size:14px; line-height:1.65;">
+        <div><strong>Bước 1 (Đi lại):</strong> Dùng cần điều khiển góc trái (trên điện thoại) hoặc phím <b>WASD / Mũi tên</b> (trên máy tính). Kéo màn hình để xoay góc nhìn.</div>
+        <div style="margin-top:8px;"><strong>Bước 2 (Tới gần):</strong> Dạo quanh Lư Hương, Gác Chuông, Chính Điện, Cây Bồ Đề, Hồ Sen hoặc Bàn Xin Quẻ.</div>
+        <div style="margin-top:8px;"><strong>Bước 3 (Hành động):</strong> Khi tới gần, chạm vào <b>Nút hành động màu vàng</b> hiện lên ở góc dưới để thực hiện nghi lễ.</div>
+      </div>
+      <div class="btn-row">
+        <button class="primary-btn" id="btn-close-tutorial">Đã hiểu, bắt đầu dạo chùa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MODAL HOẠT ĐỘNG ĐA NĂNG -->
+  <div class="overlay-screen" id="activity-modal" style="display:none;">
+    <div class="modal-box" id="activity-content"></div>
+  </div>
+
+  <!-- BẢNG ĐIỀU KHIỂN DEBUG / TEST TIKTOK (PHÍM D) -->
+  <div id="debug-panel" class="hidden">
+    <div class="debug-header">
+      <h3>⚙️ BẢNG ĐIỀU KHIỂN & TEST DONATE TIKTOK</h3>
+      <button id="btn-close-debug" class="btn-close">&times;</button>
+    </div>
+    <div class="debug-row flex-between">
+      <span>Trạng thái kết nối:</span>
+      <span id="debug-status-text" style="color: #4caf50; font-weight:700;">Online</span>
+    </div>
+    <div class="debug-row">
+      <label>Kênh TikTok Live:</label>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="input-tiktok-username" class="text-input" style="margin-bottom:0;" placeholder="@kenh_tiktok" />
+        <button id="btn-connect-tiktok" class="primary-btn" style="padding:8px 16px;">Kết nối</button>
+      </div>
+    </div>
+    <div class="debug-row flex-between">
+      <span>Chế độ Auto-Mock:</span>
+      <button id="btn-toggle-mock" class="secondary-btn" style="padding:6px 14px;">Auto-Mock: BẬT</button>
+    </div>
+    <div class="debug-row">
+      <label><b>Test Cúng Dường theo Bảng Giá Quà Tặng TikTok:</b></label>
+      <div class="test-grid">
+        <button class="btn-test" id="test-bow">🙏 A Di Đà Phật</button>
+        <button class="btn-test" id="test-1">🌹 Hoa Hồng (1 xu)</button>
+        <button class="btn-test" id="test-5">🍑 Bắn Tim (5 xu)</button>
+        <button class="btn-test" id="test-10">🍀 Cỏ 4 Lá (10 xu)</button>
+        <button class="btn-test" id="test-20">💐 Nước Hoa (20 xu)</button>
+        <button class="btn-test" id="test-99">🕊️ Hạc Giấy (99 xu)</button>
+        <button class="btn-test" id="test-100">🎉 Pháo Giấy (100 xu)</button>
+        <button class="btn-test" id="test-2999">🛵 Xe Gấu (2.999 xu)</button>
+        <button class="btn-test" id="test-5000">✈️ Máy Bay (5.000 xu)</button>
+        <button class="btn-test" id="test-7000">🏎️ Ô Tô (7.000 xu)</button>
+        <button class="btn-test" id="test-20000">🏰 Lâu Đài (20.000 xu)</button>
+        <button class="btn-test" id="test-29999">🦁 Sư Tử (29.999 xu)</button>
+        <button class="btn-test" id="test-39999">🦅 Phượng Hoàng (39.999 xu)</button>
+        <button class="btn-test" id="test-449999" style="grid-column: span 2; background: rgba(255,215,0,0.3);">🌌 TikTok Universe (449.999 xu)</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="debug-floating-btn" title="Mở bảng điều khiển (Phím D)">⚙️</button>
+
+  <!-- Module Entry Point -->
   <script type="module" src="/js/main.js"></script>
 </body>
 </html>
-

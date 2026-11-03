@@ -131,7 +131,13 @@ app.post('/api/config', async (req, res) => {
 // 3. POST /api/mock/:actionType - Bắn sự kiện test trực tiếp từ Debug Panel
 app.post('/api/mock/:actionType', (req, res) => {
   const { actionType } = req.params;
-  const validTypes = ['WOODEN_FISH', 'INCENSE', 'BELL', 'LANTERN', 'PRAYER_TEXT'];
+  const validTypes = [
+    'BOW', 'WOODEN_FISH', 'PRAYER_TEXT',
+    'INCENSE_1', 'INCENSE_3', 'LANTERN', 'OFFERING_FRUIT',
+    'BELL', 'CONFETTI', 'PARADE_FLOAT', 'BUDDHA_LIGHT',
+    'THOUSAND_LANTERNS', 'GOLDEN_PAGODA', 'GOLDEN_LION',
+    'GOLDEN_PHOENIX', 'TIKTOK_UNIVERSE', 'INCENSE'
+  ];
 
   if (!validTypes.includes(actionType)) {
     return res.status(400).json({

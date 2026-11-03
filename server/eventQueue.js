@@ -1,23 +1,19 @@
 /**
  * Event Queue & Rate Limiter for TikTok Spiritual Live Stream
- * Quản lý hàng đợi ưu tiên, điều tiết tốc độ (12 events/sec ~ 85ms/event)
- * và tự động gộp sự kiện mõ khi dồn hàng đợi (Batching).
+ * Quản lý hàng đợi ưu tiên, điều tiết tốc độ phát và tính điểm công đức
+ * theo bảng giá cúng dường thực tế của TikTok Live.
  */
 
 class EventQueue {
   constructor() {
-    this.highPriorityQueue = []; // Priority 1: BELL, LANTERN, INCENSE
-    this.normalPriorityQueue = []; // Priority 2: PRAYER_TEXT, WOODEN_FISH
-    this.totalMerit = 0;
+    this.highPriorityQueue = [];   // Quà tặng lớn & cúng dường đặc biệt
+    this.normalPriorityQueue = []; // Comment, Vái lạy A Di Đà Phật, Gõ mõ
+    this.totalMerit = 12480;       // Khởi điểm công đức chùa An Lạc
     this.timer = null;
     this.io = null;
-    this.intervalMs = 85; // ~11.76 events / sec (< 12 events/s)
+    this.intervalMs = 80;          // ~12 events / sec
   }
 
-  /**
-   * Gán đối tượng Socket.io và bắt đầu vòng lặp xử lý hàng đợi
-   * @param {import('socket.io').Server} io
-   */
   init(io) {
     this.io = io;
     if (!this.timer) {
@@ -26,45 +22,60 @@ class EventQueue {
   }
 
   /**
-   * Tính điểm công đức tương ứng với loại hành động
-   * @param {string} actionType
-   * @param {object} payload
-   * @returns {number}
+   * Tính điểm công đức tương ứng với cấp bậc donate
    */
   calculateMerit(actionType, payload = {}) {
-    const intensity = payload.intensity || 1;
     const repeatCount = payload.repeatCount || 1;
+    const coins = payload.diamondCount || 1;
+
     switch (actionType) {
+      case 'BOW':
+        return 2; // Niệm A Di Đà Phật vái lạy
       case 'WOODEN_FISH':
-        return 1 * intensity;
+        return 1 * (payload.intensity || 1);
       case 'PRAYER_TEXT':
-        return 2 * intensity;
-      case 'INCENSE':
+        return 5;
+      case 'INCENSE_1':
         return 10 * repeatCount;
-      case 'LANTERN':
+      case 'INCENSE_3':
         return 50 * repeatCount;
-      case 'BELL':
+      case 'LANTERN':
+        return 100 * repeatCount;
+      case 'OFFERING_FRUIT':
         return 200 * repeatCount;
+      case 'BELL':
+        return 1000 * repeatCount;
+      case 'CONFETTI':
+        return 1500 * repeatCount;
+      case 'PARADE_FLOAT':
+        return 30000 * repeatCount;
+      case 'BUDDHA_LIGHT':
+        return 50000 * repeatCount;
+      case 'THOUSAND_LANTERNS':
+        return 70000 * repeatCount;
+      case 'GOLDEN_PAGODA':
+        return 200000 * repeatCount;
+      case 'GOLDEN_LION':
+        return 300000 * repeatCount;
+      case 'GOLDEN_PHOENIX':
+        return 400000 * repeatCount;
+      case 'TIKTOK_UNIVERSE':
+        return 5000000 * repeatCount;
       default:
-        return 1;
+        return Math.max(1, coins * 10 * repeatCount);
     }
   }
 
-  /**
-   * Đẩy một sự kiện vào hàng đợi thích hợp
-   * @param {object} event
-   */
   enqueue(event) {
     if (!event || !event.actionType) return;
 
-    // Chuẩn hóa cấu trúc event nếu thiếu
     const normalizedEvent = {
       id: event.id || `evt_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
       timestamp: event.timestamp || Date.now(),
       actionType: event.actionType,
       user: {
-        uniqueId: event.user?.uniqueId || 'anonym_user',
-        nickname: event.user?.nickname || 'Khán Giả Ẩn Danh',
+        uniqueId: event.user?.uniqueId || 'khach_hanh_huong',
+        nickname: event.user?.nickname || 'Khách Hành Hương',
         avatarUrl: event.user?.avatarUrl || 'https://via.placeholder.com/100'
       },
       payload: {
@@ -72,48 +83,32 @@ class EventQueue {
         giftName: event.payload?.giftName || '',
         diamondCount: Number(event.payload?.diamondCount) || 1,
         repeatCount: Number(event.payload?.repeatCount) || 1,
-        intensity: Number(event.payload?.intensity) || 1
+        intensity: Number(event.payload?.intensity) || 1,
+        tier: event.payload?.tier || 'normal'
       }
     };
 
-    // Cộng điểm công đức toàn cục
     const merit = this.calculateMerit(normalizedEvent.actionType, normalizedEvent.payload);
     this.totalMerit += merit;
 
-    // Phân loại ưu tiên
-    if (['BELL', 'LANTERN', 'INCENSE'].includes(normalizedEvent.actionType)) {
+    // Quà tặng từ 99 xu trở lên thuộc mức ưu tiên cao
+    const highPriorityTypes = [
+      'BELL', 'CONFETTI', 'PARADE_FLOAT', 'BUDDHA_LIGHT',
+      'THOUSAND_LANTERNS', 'GOLDEN_PAGODA', 'GOLDEN_LION',
+      'GOLDEN_PHOENIX', 'TIKTOK_UNIVERSE'
+    ];
+
+    if (highPriorityTypes.includes(normalizedEvent.actionType)) {
       this.highPriorityQueue.push(normalizedEvent);
     } else {
-      // Nếu hàng đợi WOODEN_FISH quá 50 sự kiện, tự động gộp (Batching)
-      if (normalizedEvent.actionType === 'WOODEN_FISH') {
-        const woodenFishCount = this.normalPriorityQueue.filter(
-          (e) => e.actionType === 'WOODEN_FISH'
-        ).length;
-
-        if (woodenFishCount >= 50) {
-          // Tìm sự kiện WOODEN_FISH gần nhất của cùng user hoặc cuối cùng để tăng intensity
-          const lastFish = [...this.normalPriorityQueue]
-            .reverse()
-            .find((e) => e.actionType === 'WOODEN_FISH');
-
-          if (lastFish) {
-            lastFish.payload.intensity = (lastFish.payload.intensity || 1) + normalizedEvent.payload.intensity;
-            return;
-          }
-        }
-      }
       this.normalPriorityQueue.push(normalizedEvent);
     }
   }
 
-  /**
-   * Lấy sự kiện tiếp theo để phát xuống Frontend
-   */
   processNext() {
     if (!this.io) return;
 
     let eventToEmit = null;
-
     if (this.highPriorityQueue.length > 0) {
       eventToEmit = this.highPriorityQueue.shift();
     } else if (this.normalPriorityQueue.length > 0) {
@@ -125,25 +120,10 @@ class EventQueue {
     }
   }
 
-  /**
-   * Lấy tổng công đức hiện tại
-   * @returns {number}
-   */
   getTotalMerit() {
     return this.totalMerit;
   }
 
-  /**
-   * Đặt lại hoặc cập nhật tổng công đức
-   * @param {number} points
-   */
-  addMerit(points) {
-    this.totalMerit += points;
-  }
-
-  /**
-   * Lấy thông tin thống kê hàng đợi
-   */
   getStats() {
     return {
       highPriorityLength: this.highPriorityQueue.length,
@@ -152,9 +132,6 @@ class EventQueue {
     };
   }
 
-  /**
-   * Dừng bộ đếm khi tắt server
-   */
   destroy() {
     if (this.timer) {
       clearInterval(this.timer);
@@ -163,7 +140,5 @@ class EventQueue {
   }
 }
 
-// Export singleton instance
 const eventQueue = new EventQueue();
 module.exports = eventQueue;
-
