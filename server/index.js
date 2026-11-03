@@ -30,7 +30,9 @@ const AUTO_MOCK_INIT = process.env.AUTO_MOCK !== 'false';
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Phục vụ thư mục gốc trước (chứa index.html Niệm Phật Cầu An 3D, css/, js/)
+app.use(express.static(path.join(__dirname, '..')));
+app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
 // Khởi tạo EventQueue với Socket.io
 eventQueue.init(io);

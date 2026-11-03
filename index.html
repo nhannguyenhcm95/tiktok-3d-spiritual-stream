@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Niệm Phật Cầu An & Đạo Tràng Siêu Độ - Chùa An Lạc 3D</title>
+  
+  <meta name="description" content="Web Game 3D Niệm Phật Cầu An & Đạo Tràng Siêu Độ - Trải nghiệm đi chùa Việt 3D, kết ấn, niệm Phật xoay tràng hạt 108 hạt, thỉnh chuông, gõ mõ chấm tâm an và xin quẻ may mắn.">
+  <meta name="theme-color" content="#0f141d">
+  
+  <!-- Favicon sen vàng -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%2236%22><text y=%2232%22 font-size=%2232%22>🪷</text></svg>">
+
+  <link rel="stylesheet" href="./css/style.css">
+
+  <!-- Socket.io client (tự động nhận từ Express hoặc bỏ qua nếu chạy tĩnh) -->
+  <script src="/socket.io/socket.io.js" onerror="console.log('Chế độ Standalone (không có Socket.io server)')"></script>
+
+  <!-- Importmap cho Three.js r160 ES Modules và GSAP -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "gsap": "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Khung hiển thị Three.js 3D Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- Hiệu ứng chữ thư pháp vàng bay lên khi niệm Phật -->
+  <div id="floating-text-container"></div>
+
+  <!-- Thông báo Toast -->
+  <div id="toast-notification">Nam Mô A Di Đà Phật</div>
+
+  <!-- ==========================================
+       TOP HUD BAR
+       ========================================== -->
+  <header class="top-hud">
+    <div class="hud-profile">
+      <div class="hud-avatar" id="hud-avatar">🪷</div>
+      <div class="hud-info">
+        <div class="player-name" id="hud-player-name">Phật Tử An Lạc</div>
+        <div class="player-stats">
+          <span>📿 <b id="stat-chant-count">0</b> biến</span>
+          <span>✨ <b id="stat-merit-points">0</b> đức</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-actions">
+      <button class="hud-btn" id="btn-audio-toggle" title="Bật/Tắt âm thanh">
+        <span id="audio-icon">🔊</span>
+      </button>
+      <button class="hud-btn" id="btn-open-merit" title="Sổ Công Đức">
+        <span>📜 Sổ Đức</span>
+      </button>
+      <button class="hud-btn" id="btn-open-share" title="Xuất thiệp bình an">
+        <span>🧧 Thiệp</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Dòng nhắc tương tác khi lại gần các khu vực trong Chùa -->
+  <div class="interaction-prompt" id="interaction-prompt">
+    Nhấn nút [🙏 Hành Động] để tương tác
+  </div>
+
+  <!-- ==========================================
+       BOTTOM CONTROLS & CỤM NÚT NHANH
+       ========================================== -->
+  <footer class="bottom-controls">
+    <!-- Cần điều khiển ảo (Virtual Joystick) trên Mobile -->
+    <div id="joystick-zone">
+      <div id="joystick-thumb"></div>
+    </div>
+
+    <!-- Cụm nút nhanh góc phải -->
+    <div class="quick-action-cluster">
+      <div class="sub-actions">
+        <!-- Nút Hành Động (Chỉ sáng khi gần khu vực) -->
+        <button class="btn-interact" id="btn-interact" disabled>
+          <span class="icon" id="interact-icon">🙏</span>
+          <span class="text" id="interact-text">Hành Động</span>
+        </button>
+
+        <!-- Nút Kết Ấn -->
+        <button class="btn-seal" id="btn-open-seal" title="Vẽ Thủ Ấn Linh Quang">
+          <span class="icon">✨</span>
+          <span>Kết Ấn</span>
+        </button>
+      </div>
+
+      <!-- Nút Niệm Phật lớn nhất chính giữa -->
+      <button class="btn-chant" id="btn-chant-once" title="Chạm để Niệm Phật (+1 Công Đức)">
+        <div class="bead-ring-indicator"></div>
+        <span class="icon">📿</span>
+        <span class="label">Niệm Phật</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ==========================================
+       MODAL 0: WELCOME & NHẬP PHÁP DANH
+       ========================================== -->
+  <div class="modal-overlay open" id="modal-welcome">
+    <div class="modal-container welcome-modal">
+      <div class="welcome-logo">🪷</div>
+      <h2 class="modal-title" style="justify-content: center; font-size: 22px;">CHÙA AN LẠC 3D</h2>
+      <p class="welcome-subtitle">
+        Chào mừng quý Phật tử bước vào khuôn viên Chùa Cổ.<br>
+        Lắng tâm nghe tiếng chuông, gõ mõ niệm Phật và gửi gắm những lời cầu an thiện lành.
+      </p>
+
+      <div class="form-group" style="text-align: left; margin-top: 10px;">
+        <label class="form-label">Pháp danh hoặc Họ tên của bạn:</label>
+        <input type="text" class="form-input" id="input-welcome-name" placeholder="Ví dụ: Diệu Tâm, Phúc An..." maxlength="20" value="Diệu Tâm">
+      </div>
+
+      <div class="form-group" style="text-align: left;">
+        <label class="form-label">Pháp phục:</label>
+        <div class="radio-pills">
+          <div class="radio-pill-item active" data-robe="lam">Áo Lam</div>
+          <div class="radio-pill-item" data-robe="nau">Áo Tràng Nâu</div>
+          <div class="radio-pill-item" data-robe="samon">Sa Môn</div>
+        </div>
+      </div>
+
+      <button class="modal-primary-btn" id="btn-start-game">BƯỚC VÀO CHÙA 🙏</button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 1: KẾT ẤN (MUDRA SYSTEM)
+       ========================================== -->
+  <div class="modal-overlay" id="modal-handseal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">✨ Kết Ấn Linh Quang</h3>
+        <button class="btn-close" id="btn-close-handseal">&times;</button>
+      </div>
+
+      <div class="tab-row" id="seal-tabs">
+        <button class="tab-btn active" data-seal="0">Liên Hoa Ấn</button>
+        <button class="tab-btn" data-seal="1">Vô Úy Ấn</button>
+        <button class="tab-btn" data-seal="2">Kim Cang Ấn</button>
+        <button class="tab-btn" data-seal="3">Tịnh Hóa Ấn</button>
+      </div>
+
+      <canvas id="handseal-canvas" width="340" height="340"></canvas>
+
+      <div class="seal-info">
+        <div class="seal-name" id="seal-display-name">Liên Hoa Hợp Chưởng Ấn</div>
+        <div class="seal-meaning" id="seal-display-meaning">Tâm hoa bừng nở, khai mở lòng từ bi thanh tịnh</div>
+      </div>
+
+      <p style="text-align: center; font-size: 11px; color: #a4b0be;">
+        Dùng ngón tay hoặc chuột vuốt nối các điểm linh quang theo thứ tự phát sáng
+      </p>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 2: THẮP HƯƠNG TÂM HƯƠNG
+       ========================================== -->
+  <div class="modal-overlay" id="modal-incense">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">🔥 Dâng Hương Lư Đồng</h3>
+        <button class="btn-close" id="btn-close-incense">&times;</button>
+      </div>
+
+      <p style="font-size: 13px; line-height: 1.6; color: #ced6e0;">
+        "Khói hương bay khắp mười phương,<br>
+        Nguyện lòng thanh tịnh cúng dường Phật đài."
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Chọn số nén hương thành tâm dâng cúng:</label>
+        <div class="radio-pills">
+          <div class="radio-pill-item active" data-sticks="3">3 Nén (Tam Bảo Hương)</div>
+          <div class="radio-pill-item" data-sticks="1">1 Nén (Tâm Hương)</div>
+        </div>
+      </div>
+
+      <button class="modal-primary-btn" id="btn-confirm-incense">THÀNH TÂM DÂNG HƯƠNG 🙏</button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 3: THỈNH ĐẠI HỒNG CHUNG
+       ========================================== -->
+  <div class="modal-overlay" id="modal-bell">
+    <div class="modal-container" style="text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔔 Thỉnh Đại Hồng Chung</h3>
+        <button class="btn-close" id="btn-close-bell">&times;</button>
+      </div>
+
+      <p style="font-size: 12px; color: #ced6e0;">
+        Chờ vòng tròn hào quang co lại vừa khớp với tâm chuông rồi bấm thỉnh chuông!
+      </p>
+
+      <div class="bell-target-area">
+        <div class="bell-icon-center">🔔</div>
+        <div class="bell-target-ring"></div>
+        <div class="bell-hit-ring" id="bell-hit-ring"></div>
+      </div>
+
+      <div id="bell-rating-result" style="min-height: 20px; font-weight: 700; color: #ffd700;"></div>
+
+      <button class="modal-primary-btn" id="btn-strike-bell" style="margin-top: 10px;">THỈNH CHUÔNG (GÕ)</button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 4: GÕ MÕ TỤNG KINH (30 GIÂY)
+       ========================================== -->
+  <div class="modal-overlay" id="modal-woodenfish">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">🪵 Gõ Mõ Tịnh Tâm (30s)</h3>
+        <button class="btn-close" id="btn-close-woodenfish">&times;</button>
+      </div>
+
+      <div class="mo-stats-bar">
+        <span>⏱️ Còn: <b id="mo-time-display">30s</b></span>
+        <span>🕊️ Điểm Tâm An: <b id="mo-score-display">0</b>/100</span>
+      </div>
+
+      <div class="woodenfish-zone">
+        <div class="mo-circle-btn" id="mo-tap-btn">🪵</div>
+        <div class="mo-rating-label" id="mo-rating-text">Chạm vào mõ để bắt đầu...</div>
+      </div>
+
+      <p style="text-align: center; font-size: 11px; color: #a4b0be;">
+        Gõ đều đặn theo nhịp thở êm đềm để đạt sự tĩnh lặng trong tâm hồn.
+      </p>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 5: VIẾT LỜI CẦU AN / CẦU SIÊU
+       ========================================== -->
+  <div class="modal-overlay" id="modal-prayer">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">📜 Sớ Cầu An & Cầu Siêu</h3>
+        <button class="btn-close" id="btn-close-prayer">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Người gửi (Pháp danh/Họ tên):</label>
+        <input type="text" class="form-input" id="prayer-sender" placeholder="Ví dụ: Con Phật tử Phúc An" maxlength="25">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ước nguyện gửi gắm:</label>
+        <textarea class="form-textarea" id="prayer-content" placeholder="Cầu cho gia đình bình an mạnh khỏe, tai qua nạn khỏi, tâm thanh tịnh..." maxlength="120"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Phương thức cúng dường tâm nguyện:</label>
+        <div class="radio-pills">
+          <div class="radio-pill-item active" data-ptype="BODE">🌳 Treo Lụa Cây Bồ Đề</div>
+          <div class="radio-pill-item" data-ptype="HOSEN">🪷 Thả Đèn Hoa Đăng Hồ Sen</div>
+        </div>
+      </div>
+
+      <button class="modal-primary-btn" id="btn-submit-prayer">GỬI LỜI CẦU NGUYỆN 🙏</button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 6: XIN QUẺ ĐẦU NĂM
+       ========================================== -->
+  <div class="modal-overlay" id="modal-fortune">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">🎋 Xin Quẻ May Mắn Đầu Năm</h3>
+        <button class="btn-close" id="btn-close-fortune">&times;</button>
+      </div>
+
+      <div id="fortune-tube-wrap" style="text-align: center; padding: 10px 0;">
+        <div class="fortune-tube" id="fortune-tube">🎋</div>
+        <p style="margin-top: 10px; font-size: 12px; color: #ced6e0;">Chạm vào ống xăm để lắc quẻ lành...</p>
+      </div>
+
+      <div class="fortune-result-card" id="fortune-result-card" style="display: none;">
+        <div class="fortune-card-title" id="fortune-title">Thượng Thượng Quẻ - Vạn Sự Cát Tường</div>
+        <div class="fortune-poem" id="fortune-poem">Tâm an cảnh hóa thong dong,<br>Đức dày phúc rộng hanh thông tháng ngày.</div>
+        <div class="fortune-meaning" id="fortune-meaning">Lòng từ bi mở rộng, việc lành kết trái ngọt, công việc thuận buồm xuôi gió.</div>
+        <div class="fortune-note">* Quẻ mang tính chất gieo duyên lành giải trí, chúc quý Phật tử luôn an vui.</div>
+      </div>
+
+      <button class="modal-primary-btn" id="btn-draw-fortune">LẮC ỐNG XĂM 🎋</button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 7: SỔ CÔNG ĐỨC & XUẤT THIỆP
+       ========================================== -->
+  <div class="modal-overlay" id="modal-merit">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">📜 Sổ Công Đức & Cầu An</h3>
+        <button class="btn-close" id="btn-close-merit">&times;</button>
+      </div>
+
+      <div class="merit-scroll-view">
+        <div style="text-align: center; font-size: 18px; font-weight: 700; color: #c0392b; margin-bottom: 6px;">
+          CHÙA AN LẠC - CHỨNG MINH CÔNG ĐỨC
+        </div>
+        <div class="merit-row">
+          <span>Phật tử đạo hiệu:</span>
+          <b id="scroll-devotee-name">Diệu Tâm</b>
+        </div>
+        <div class="merit-row">
+          <span>Tổng số biến niệm Phật:</span>
+          <b id="scroll-chant-count">0 biến</b>
+        </div>
+        <div class="merit-row">
+          <span>Nén tâm hương dâng Phật:</span>
+          <b id="scroll-incense-count">0 nén</b>
+        </div>
+        <div class="merit-row">
+          <span>Điểm Tâm An cao nhất:</span>
+          <b id="scroll-taman-score">0/100</b>
+        </div>
+        <div class="merit-row">
+          <span>Vong linh/Linh quang siêu độ:</span>
+          <b id="scroll-purified-count">0 vị</b>
+        </div>
+        <div class="merit-stamp">TÂM AN VẠN SỰ AN</div>
+      </div>
+
+      <button class="modal-primary-btn" id="btn-export-share-card">🧧 XUẤT THIỆP DỌC (1080x1350) 📥</button>
+    </div>
+  </div>
+
+  <!-- Nạp file điều khiển chính (ES Module) -->
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
