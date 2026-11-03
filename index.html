@@ -13,6 +13,18 @@
 
   <link rel="stylesheet" href="./css/style.css">
 
+  <script>
+    // Cảnh báo nếu mở trực tiếp bằng giao thức file:// thay vì qua Web Server
+    if (window.location.protocol === 'file:') {
+      window.addEventListener('DOMContentLoaded', () => {
+        const warn = document.createElement('div');
+        warn.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#c0392b;color:#fff;padding:12px 16px;text-align:center;font-weight:700;z-index:999999;box-shadow:0 4px 15px rgba(0,0,0,0.6);font-size:13px;line-height:1.5;';
+        warn.innerHTML = '⚠️ BẠN ĐANG MỞ TRỰC TIẾP FILE HTML (file://). Do bảo mật trình duyệt chặn nạp 3D module qua file://, vui lòng chạy lệnh <code>npm start</code> trong terminal rồi truy cập <a href="http://localhost:3000" style="color:#ffd700;text-decoration:underline;margin-left:5px;">http://localhost:3000</a> để vào Chùa mượt mà!';
+        document.body.appendChild(warn);
+      });
+    }
+  </script>
+
   <!-- Socket.io client (tự động nhận từ Express hoặc bỏ qua nếu chạy tĩnh) -->
   <script src="/socket.io/socket.io.js" onerror="console.log('Chế độ Standalone (không có Socket.io server)')"></script>
 
@@ -22,7 +34,7 @@
     "imports": {
       "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
       "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-      "gsap": "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/index.js"
+      "gsap": "https://unpkg.com/gsap@3.12.5/index.js"
     }
   }
   </script>

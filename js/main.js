@@ -629,10 +629,11 @@ class GameApp {
     requestAnimationFrame(this.animate);
 
     const delta = Math.min(this.clock.getDelta(), 0.1);
+    const elapsed = this.clock.getElapsedTime();
 
     // 1. Cập nhật Player & Camera
     if (this.playerController) {
-      this.playerController.update(delta);
+      this.playerController.update(delta, elapsed);
     }
 
     // 2. Cập nhật Hiệu ứng VFX Môi trường
@@ -643,7 +644,7 @@ class GameApp {
 
     // 3. Cập nhật Thế giới Chùa 3D (Hào quang, hoa sen trôi)
     if (this.templeWorld) {
-      this.templeWorld.update(delta);
+      this.templeWorld.update(elapsed);
     }
 
     // 4. Cập nhật 45 khách hành hương AI

@@ -43,6 +43,7 @@ export class TempleWorld {
   }
 
   build() {
+    this._buildLightingAndSky();
     this._buildGroundAndWalls();
     this._buildTamQuanGate();
     this._buildMainHall();
@@ -55,6 +56,36 @@ export class TempleWorld {
     this._buildLanternCorridor();
 
     this._registerInteractionZones();
+  }
+
+  _buildLightingAndSky() {
+    // 1. Bầu trời hoàng hôn tím sẫm chuyển dần sang đêm thanh tịnh
+    this.scene.background = new THREE.Color(0x1e152a);
+    this.scene.fog = new THREE.FogExp2(0x1e152a, 0.012);
+
+    // 2. Ánh sáng môi trường dịu ấm
+    const ambientLight = new THREE.AmbientLight(0xffeedd, 0.85);
+    this.scene.add(ambientLight);
+
+    // 3. Ánh sáng hoàng hôn mặt trời lặn từ hướng Tây-Nam (đổ bóng dài lung linh trên sân gạch)
+    const sunLight = new THREE.DirectionalLight(0xffaa55, 1.5);
+    sunLight.position.set(-25, 38, 28);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 120;
+    const d = 45;
+    sunLight.shadow.camera.left = -d;
+    sunLight.shadow.camera.right = d;
+    sunLight.shadow.camera.top = d;
+    sunLight.shadow.camera.bottom = -d;
+    sunLight.shadow.bias = -0.0005;
+    this.scene.add(sunLight);
+
+    // 4. Bán cầu phản quang (Bầu trời tím & Sân gạch nung)
+    const hemiLight = new THREE.HemisphereLight(0x5e4b78, 0x8a3824, 0.75);
+    this.scene.add(hemiLight);
   }
 
   _buildGroundAndWalls() {

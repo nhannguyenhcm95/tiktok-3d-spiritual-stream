@@ -29,6 +29,9 @@ export class AiPilgrimsManager {
       'Phúc lạc tràn đầy muôn nơi',
       'Tịnh tâm niệm Phật, lòng nhẹ như mây'
     ];
+
+    // Khởi tạo ngay lập tức
+    this.init();
   }
 
   init() {

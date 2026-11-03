@@ -428,6 +428,9 @@ export class PlayerController {
   update(dt, elapsed) {
     if (this.mixer) this.mixer.update(dt);
 
+    this.elapsedTime = (this.elapsedTime || 0) + (dt || 0.016);
+    const time = elapsed !== undefined ? elapsed : this.elapsedTime;
+
     // 1. Tính toán vector di chuyển từ phím & joystick
     let moveX = this.inputVector.x;
     let moveZ = this.inputVector.y;
@@ -467,7 +470,7 @@ export class PlayerController {
 
       // Hoạt ảnh bước đi vung tay chân thủ công nếu dùng Procedural
       if (this.proceduralParts) {
-        const stepCycle = elapsed * 11.0;
+        const stepCycle = time * 11.0;
         this.proceduralParts.leftLeg.rotation.x = Math.sin(stepCycle) * 0.55;
         this.proceduralParts.rightLeg.rotation.x = -Math.sin(stepCycle) * 0.55;
         this.proceduralParts.leftArm.rotation.x = -Math.sin(stepCycle) * 0.45 - 0.4;
@@ -488,7 +491,7 @@ export class PlayerController {
 
       // Nhịp thở tịnh tâm nhẹ nhàng khi IDLE
       if (this.proceduralParts && this.currentState === 'IDLE') {
-        this.proceduralParts.bodyPivot.position.y = 0.72 + Math.sin(elapsed * 2.2) * 0.008;
+        this.proceduralParts.bodyPivot.position.y = 0.72 + Math.sin(time * 2.2) * 0.008;
       }
     }
 
