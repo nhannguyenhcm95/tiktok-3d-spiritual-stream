@@ -78,3 +78,4 @@ namespace ChanhDien.Core
         public string data; // Raw json string hoặc deserialize cụ thể
     }
 }
+
