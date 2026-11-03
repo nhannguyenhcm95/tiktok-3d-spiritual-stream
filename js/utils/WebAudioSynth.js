@@ -47,7 +47,11 @@ export class WebAudioSynth {
   }
 
   toggleMute() {
-    this.isMuted = !this.isMuted;
+    return this.setMuted(!this.isMuted);
+  }
+
+  setMuted(muted) {
+    this.isMuted = !!muted;
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
       this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.85, this.ctx.currentTime);
@@ -267,3 +271,4 @@ export class WebAudioSynth {
     this.ambientNodes.push(whiteNoise, lfo, windFilter);
   }
 }
+

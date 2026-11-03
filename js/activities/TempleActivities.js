@@ -394,3 +394,4 @@ export class TempleActivities {
     return list;
   }
 }
+

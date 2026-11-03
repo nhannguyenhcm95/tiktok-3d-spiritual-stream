@@ -181,6 +181,10 @@ export class EnvironmentVfx {
   /**
    * "Bộ Bộ Sinh Liên" — Mỗi bước chân nở đóa sen vàng phát sáng
    */
+  spawnLotusStep(x, z) {
+    this.spawnFootprintLotus({ x, z });
+  }
+
   spawnFootprintLotus(pos) {
     let lotus = this.lotusPool.pop();
     if (!lotus) {
@@ -361,3 +365,4 @@ export class EnvironmentVfx {
     }
   }
 }
+

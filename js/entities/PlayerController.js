@@ -17,11 +17,19 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import gsap from 'gsap';
 
 export class PlayerController {
-  constructor(scene, camera, collisionSystem, environmentVfx) {
+  constructor(scene, camera, collisionSystem, environmentVfxOrOptions) {
     this.scene = scene;
     this.camera = camera;
     this.collision = collisionSystem;
-    this.vfx = environmentVfx;
+
+    // Hỗ trợ cả 2 dạng: truyền instance vfx hoặc truyền options object
+    if (environmentVfxOrOptions && environmentVfxOrOptions.vfxManager) {
+      this.vfx = environmentVfxOrOptions.vfxManager;
+      this.playerName = environmentVfxOrOptions.devoteeName || 'Phật Tử Hữu Duyên';
+    } else {
+      this.vfx = environmentVfxOrOptions;
+      this.playerName = 'Phật Tử Hữu Duyên';
+    }
 
     // Cấu hình Model
     this.modelConfig = {
@@ -35,7 +43,6 @@ export class PlayerController {
     // Vị trí xuất phát ở sân chùa gần Cổng Tam Quan
     this.root.position.set(0, 0, 26);
 
-    this.playerName = 'Phật Tử Hữu Duyên';
     this.isGlbLoaded = false;
     this.mixer = null;
     this.glbActions = {};
@@ -58,6 +65,22 @@ export class PlayerController {
     this.cameraLookOffset = new THREE.Vector3(0, 1.4, 0);
     this.orbitAngles = { theta: 0, phi: 0.35 };
     this.isOrbiting = false;
+    this.previousPointer = { x: 0, y: 0 };
+
+    // Input state
+    this.inputVector = new THREE.Vector2(0, 0);
+    this.keyboardKeys = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false
+    };
+
+    this.nameplate = null;
+
+    // Khởi tạo ngay lập tức
+    this.init(this.playerName);
+  }
     this.previousPointer = { x: 0, y: 0 };
 
     // Input state
@@ -478,4 +501,21 @@ export class PlayerController {
     this.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.12);
     this.camera.lookAt(this.root.position.clone().add(this.cameraLookOffset));
   }
+
+  getPosition() {
+    return this.root.position;
+  }
+
+  setJoystickInput(x, y) {
+    this.inputVector.set(x, y);
+  }
+
+  setDevoteeName(name) {
+    this.playerName = name || 'Phật Tử';
+    if (this.nameplate && this.nameplate.parent) {
+      this.root.remove(this.nameplate);
+      this._createNameplate();
+    }
+  }
 }
+

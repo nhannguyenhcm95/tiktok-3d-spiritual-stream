@@ -34,6 +34,12 @@ export class TempleWorld {
 
     this.scene.add(this.bodhiSilkGroup);
     this.scene.add(this.lakeLanternsGroup);
+
+    // Danh sách colliders chống đi xuyên vật thể
+    this.colliders = [];
+
+    // Tự động dựng thế giới 3D và vùng tương tác
+    this.build();
   }
 
   build() {
@@ -534,18 +540,71 @@ export class TempleWorld {
   }
 
   /**
-   * Đăng ký các vùng tương tác (Zones)
+   * Đăng ký các vùng tương tác (Zones) chuẩn hóa cả 2 định dạng
    */
   _registerInteractionZones() {
     this.zones = [
-      { id: 'ZONE_CENSER', name: 'Thắp Hương', x: 0, z: 8, radius: 3.5, icon: '🕯️' },
-      { id: 'ZONE_BELL', name: 'Thỉnh Chuông', x: -20, z: 4, radius: 3.8, icon: '🔔' },
-      { id: 'ZONE_ALTAR', name: 'Gõ Mõ & Tụng Kinh', x: 0, z: -14, radius: 5.5, icon: '🪵' },
-      { id: 'ZONE_SIEU_DO', name: 'Đàn Tràng Siêu Độ', x: -18, z: -18, radius: 5.0, icon: '✨' },
-      { id: 'ZONE_BODHI_TREE', name: 'Treo Lụa Cầu An', x: 18, z: -8, radius: 4.8, icon: '📜' },
-      { id: 'ZONE_LOTUS_LAKE', name: 'Thả Đèn Hoa Đăng', x: 20, z: 14, radius: 5.5, icon: '🪷' },
-      { id: 'ZONE_FORTUNE', name: 'Xin Quẻ Đầu Năm', x: -14, z: 18, radius: 3.2, icon: '🍀' }
+      { id: 'LU_HUONG', name: 'Lư Hương Đại Đồng', label: 'Thắp Hương', x: 0, z: 8, position: { x: 0, z: 8 }, radius: 4.0, icon: '🔥' },
+      { id: 'GAC_CHUONG', name: 'Gác Chuông', label: 'Thỉnh Chuông', x: -20, z: 4, position: { x: -20, z: 4 }, radius: 4.5, icon: '🔔' },
+      { id: 'CHINH_DIEN', name: 'Đại Hùng Bảo Điện', label: 'Gõ Mõ', x: 0, z: -14, position: { x: 0, z: -14 }, radius: 6.0, icon: '🪵' },
+      { id: 'DAN_TRANG', name: 'Đàn Tràng Siêu Độ', label: 'Siêu Độ', x: -18, z: -18, position: { x: -18, z: -18 }, radius: 5.5, icon: '✨' },
+      { id: 'CAY_BO_DE', name: 'Cây Bồ Đề Cổ Thụ', label: 'Treo Lụa', x: 18, z: -8, position: { x: 18, z: -8 }, radius: 5.0, icon: '🌳' },
+      { id: 'HO_SEN', name: 'Hồ Sen Hoa Đăng', label: 'Thả Đèn', x: 20, z: 14, position: { x: 20, z: 14 }, radius: 5.5, icon: '🪷' },
+      { id: 'BAN_QUE', name: 'Bàn Xin Quẻ', label: 'Xin Quẻ', x: -14, z: 18, position: { x: -14, z: 18 }, radius: 4.0, icon: '🎋' }
     ];
+    this.interactionZones = this.zones;
+
+    // Thiết lập danh sách colliders chống đi xuyên
+    this.colliders = [
+      // Chính điện (Box)
+      { type: 'box', minX: -12, maxX: 12, minZ: -28, maxZ: -12, name: 'Chính Điện' },
+      // Tường bao phía Bắc
+      { type: 'box', minX: -38, maxX: 38, minZ: -38, maxZ: -36, name: 'Tường Bắc' },
+      // Tường bao phía Nam
+      { type: 'box', minX: -38, maxX: 38, minZ: 36, maxZ: 38, name: 'Tường Nam' },
+      // Tường bao phía Tây
+      { type: 'box', minX: -38, maxX: -36, minZ: -38, maxZ: 38, name: 'Tường Tây' },
+      // Tường bao phía Đông
+      { type: 'box', minX: 36, maxX: 38, minZ: -38, maxZ: 38, name: 'Tường Đông' },
+      // Lư Hương Đại Đồng (Circle)
+      { type: 'circle', x: 0, z: 8, radius: 1.6, name: 'Lư Hương' },
+      // Gác Chuông (Circle)
+      { type: 'circle', x: -20, z: 4, radius: 2.8, name: 'Gác Chuông' },
+      // Cây Bồ Đề (Circle)
+      { type: 'circle', x: 18, z: -8, radius: 2.4, name: 'Cây Bồ Đề' },
+      // Hồ Sen (Circle)
+      { type: 'circle', x: 20, z: 14, radius: 5.2, name: 'Hồ Sen' }
+    ];
+  }
+
+  getColliders() {
+    return this.colliders || [];
+  }
+
+  /**
+   * Thả đèn hoa đăng trôi trên mặt nước hồ sen
+   */
+  spawnFloatingLantern(senderName = 'Phật Tử') {
+    const lanternGeo = new THREE.CylinderGeometry(0.35, 0.22, 0.18, 6);
+    const lanternMat = new THREE.MeshStandardMaterial({
+      color: 0xffa000,
+      emissive: 0xff6f00,
+      emissiveIntensity: 0.8,
+      roughness: 0.2
+    });
+    const lantern = new THREE.Mesh(lanternGeo, lanternMat);
+
+    // Vị trí ngẫu nhiên trong hồ sen (Tâm hồ: X: 20, Z: 14, bán kính 4m)
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 0.8 + Math.random() * 3.2;
+    lantern.position.set(20 + Math.cos(angle) * dist, 0.18, 14 + Math.sin(angle) * dist);
+
+    const candleLight = new THREE.PointLight(0xffab00, 1.2, 4.0);
+    candleLight.position.y = 0.25;
+    lantern.add(candleLight);
+
+    this.lakeLanternsGroup.add(lantern);
+    return lantern;
   }
 
   /**
@@ -588,3 +647,4 @@ export class TempleWorld {
     }
   }
 }
+

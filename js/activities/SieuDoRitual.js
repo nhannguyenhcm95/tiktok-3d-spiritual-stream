@@ -356,3 +356,4 @@ export class SieuDoRitual {
     localStorage.setItem('np_purified_count', this.purifiedCount.toString());
   }
 }
+

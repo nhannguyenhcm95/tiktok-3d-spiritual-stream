@@ -271,4 +271,9 @@ export class ShareCardExporter {
       this.downloadCard(customData);
     }
   }
+
+  async exportCard(customData = {}) {
+    return this.shareCard(customData);
+  }
 }
+

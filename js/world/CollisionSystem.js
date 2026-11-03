@@ -21,6 +21,21 @@ export class CollisionSystem {
     this.circleColliders.push({ x, z, radius, name });
   }
 
+  addColliders(colliders) {
+    if (!Array.isArray(colliders)) return;
+    colliders.forEach(c => {
+      if (c.type === 'box') {
+        this.addBoxCollider(c.minX, c.maxX, c.minZ, c.maxZ, c.name);
+      } else if (c.type === 'circle') {
+        this.addCircleCollider(c.x, c.z, c.radius, c.name);
+      }
+    });
+  }
+
+  checkMove(currPos, nextPos, radius = 0.42) {
+    return this.resolveCollision(currPos, nextPos, radius);
+  }
+
   /**
    * Giải quyết va chạm với cơ chế trượt (sliding response)
    */
@@ -76,3 +91,4 @@ export class CollisionSystem {
     return false;
   }
 }
+
