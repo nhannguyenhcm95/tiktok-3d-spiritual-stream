@@ -1,59 +1,35 @@
-# Role: 03 - UI Overlay, 9:16 Safe-Zone HUD & Web Audio Engineer
+# Role: 03 - UI HUD, Speech Bubbles Pooling & Audio/TTS Engineer
 
-## 1. Mục tiêu vai trò
-Xây dựng giao diện HTML/CSS tỷ lệ dọc 9:16 tuân thủ vùng an toàn (Safe-Zone) của TikTok Live, quản lý Bảng Xếp Hạng Công Đức, thông báo cầu nguyện và bộ tổng hợp âm thanh Web Audio API Synthesizer đa luồng không cần file `.mp3` bên ngoài.
-
-## 2. Strict File Scope Rules (Phạm vi file nghiêm ngặt)
-- **QUYỀN GHI (Write Access):** `public/index.html`, `public/css/style.css`, `public/js/ui/HudManager.js`, `public/js/audio/SoundSynth.js`, và cập nhật `STATUS.md`.
+## 1. Strict File Scope Rules (Phạm vi file nghiêm ngặt)
+- **QUYỀN GHI (Write Access):** `public/index.html`, `public/css/style.css`, `public/js/ui/HudManager.js`, `public/js/audio/AudioTtsManager.js` và cập nhật `STATUS.md`.
 - **QUYỀN ĐỌC (Read-Only):** `CONTRACT.md`, `STATUS.md`.
-- **CẤM CHẠM VÀO (Forbidden):** Tuyệt đối KHÔNG chạm vào `server/**`, `public/js/3d/**`, `public/js/main.js`.
+- **CẤM CHẠM VÀO (Forbidden):** `server/**`, `public/js/3d/**`, `public/js/main.js`.
 
-## 3. Yêu cầu kỹ thuật chi tiết cho từng file
+## 2. Nhiệm vụ kỹ thuật chi tiết (Chuẩn Giao diện Video Mẫu)
 
-### 3.1. File `public/index.html`
-- Khai báo `<script type="importmap">` chuẩn xác:
-  ```html
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "[https://unpkg.com/three@0.160.0/build/three.module.js](https://unpkg.com/three@0.160.0/build/three.module.js)",
-        "gsap": "[https://unpkg.com/gsap@3.12.5/index.js](https://unpkg.com/gsap@3.12.5/index.js)"
-      }
-    }
-  </script>
-  ```
-- Nhúng `<script src="/socket.io/socket.io.js"></script>`.
-- Tạo đầy đủ các thẻ HTML với **chính xác 100% các ID quy định trong `CONTRACT.md`**:
-  - `#app-wrapper`
-  - `#webgl-container`
-  - `#hud-layer` (chứa `#merit-counter`, `#leaderboard-list`, `#toast-container`, `#prayer-wall`, và hướng dẫn tương tác ngắn gọn cho khán giả như: *"Chat 'Nam Mô' để Gõ Mõ | Tặng Hoa Hồng: Thắp Nhang | Quà lớn: Thỉnh Chuông"*).
-  - `#debug-panel` (Chứa ô nhập `@username` TikTok, nút Connect, nút bật/tắt Auto-Mock, nút đổi Theme Chùa/Nhà Thờ, nút Mute/Unmute, và 5 nút Test nhanh sự kiện).
-- Cuối thẻ `<body>` gọi `<script type="module" src="/js/main.js"></script>`.
+### 2.1. `public/index.html` & `public/css/style.css`
+- Thiết kế khung hiển thị dọc **9:16** chuẩn TikTok Live (trên máy tính hiển thị khung dọc 9:16 căn giữa màn hình hoặc toàn màn hình khi có `?obs=true`).
+- **Bảng `TẤM LÒNG THÀNH` (`#tam-long-thanh-panel` - Góc phải trên):**
+  - Nền nâu đen bán trong suốt (`rgba(28, 14, 6, 0.82)`), viền vàng kim mảnh, bo góc `12px`.
+  - Tiêu đề chữ vàng đậm: **TẤM LÒNG THÀNH**.
+  - Dòng phụ: `Đệm cuối (hạng 5) có 204 xu`.
+  - Danh sách 4 người bám đuổi: Hiển thị số thứ tự tròn, Tên người dùng, icon đồng xu vàng + số xu bên phải, và dòng chữ nhỏ màu vàng nhạt ở dưới: `còn 47 xu để lên đệm`.
+  - Ngay bên dưới khung bảng là badge nhỏ: `Vòng lạy: 45`.
+- **Banner Thông báo Đỉnh (`#top-banner-toast`):**
+  - Đặt ở chính giữa phía trên (ngay ngang ngực/vai tượng Phật), nền nâu sẫm viền vàng phát sáng, chữ trắng đậm: `"Trântrân đã chia sẻ buổi lễ 🙏"` hoặc `"ThuỳsDỉ dâng hương, cầu bình an (x2)"`.
+- **Nhãn tên Nhân vật & Bong bóng Chat Cầu Nguyện (`#labels-layer`):**
+  - **Nhãn tên (`name-tag`):** Khung đen mờ nhỏ gọn (`rgba(0,0,0,0.68)`), chữ trắng `11px`, bo tròn, gắn ngay trên đầu mỗi nhân vật. Với 4 vị trí Đệm VIP hàng đầu thì có số thứ tự `1. Hoàng Quân`, `2. thu.tr`... Với nhân vật Solo Dâng Hương thì khung tên nổi bật hơn kèm icon hoa hồng/nhang.
+  - **Bong bóng Chat (`speech-bubble`):** Nền trắng tinh (`#ffffff`), chữ đen đậm (`#1a1a1a`), bo góc `10px`, có mũi tên tam giác nhỏ chỉ xuống đầu nhân vật, hiệu ứng pop-in mượt mà.
 
-### 3.2. File `public/css/style.css` (Chuẩn TikTok 9:16 Safe-Zone)
-- Thiết kế khung hiển thị dọc 9:16 sang trọng, huyền ảo (Glassmorphism nền đen mờ viền vàng kim `#ffd700`, font chữ dễ đọc trên màn hình điện thoại).
-- **Quy chuẩn TikTok Safe-Zone:**
-  - **20% Trên cùng:** Đặt `#merit-counter` (Tổng Công Đức) và `#leaderboard-list` (Top 3 Bảng Vàng Công Đức).
-  - **50% Giữa màn hình:** Đặt `#toast-container` (hiện thông báo khi có người thắp hương/thỉnh chuông) và `#prayer-wall` (thẻ lời cầu nguyện lung linh ở cạnh phải).
-  - **30% Dưới cùng:** Tuyệt đối để trống góc dưới bên trái (vì khung chat của ứng dụng TikTok sẽ đè lên vùng này). Chỉ để một thanh hướng dẫn nhỏ gọn tinh tế ở sát mép hoặc phía trên vùng chat.
+### 2.2. `public/js/ui/HudManager.js` (DOM Object Pooling chống giật lag)
+- Quản lý cập nhật Bảng `TẤM LÒNG THÀNH`, bộ đếm `Vòng lạy`, `Top Banner Toast`.
+- **Tối ưu hiệu năng DOM:** Tạo sẵn 1 Pool các thẻ `name-tag` và `speech-bubble`, chỉ cập nhật `transform: translate3d(x, y, 0)` và `opacity` theo tọa độ từ `CrowdSystem.js`. Khi vào chế độ **Spotlight Solo Dâng Hương**, tự động ẩn toàn bộ nhãn tên của đám đông và chỉ hiện nhãn tên + bong bóng cầu nguyện của nhân vật Solo.
 
-### 3.3. File `public/js/ui/HudManager.js`
-- Export class `HudManager` đúng chuẩn `CONTRACT.md`.
-- Lắng nghe `window.addEventListener('TIKTOK_ACTION', (e) => ...)`:
-  - **Tính điểm Công Đức:** `WOODEN_FISH` = +1, `PRAYER_TEXT` = +2, `INCENSE` = +10, `LANTERN` = +50, `BELL` = +200 (nhân với `payload.intensity` hoặc `repeatCount`).
-  - Lưu trữ điểm của từng `user.uniqueId`, tự động sắp xếp và render **Top 3 Bảng Vàng Công Đức** lên `#leaderboard-list` kèm hiệu ứng nảy số.
-  - Hiển thị **Toast Notification** đẹp mắt tại `#toast-container` khi có sự kiện `INCENSE`, `LANTERN`, `BELL` (tự động xóa sau 4 giây).
-  - Hiển thị lời cầu nguyện của khán giả lên `#prayer-wall` khi có sự kiện `PRAYER_TEXT` hoặc `LANTERN` (giới hạn tối đa 3 thẻ hiển thị cùng lúc).
-
-### 3.4. File `public/js/audio/SoundSynth.js` (Web Audio API Synthesizer)
-- Export class `SoundSynth` đúng chuẩn `CONTRACT.md`.
-- Sử dụng **Web Audio API thuần (`window.AudioContext`)** để tự tổng hợp âm thanh sống động ngay lập tức mà không cần phụ thuộc file `.mp3` bên ngoài:
-  1. **Tiếng Mõ Gỗ (`playWoodenFish()`):** Kết hợp Oscillator sóng `triangle` + `BiquadFilterNode` (bandpass ~720Hz, Q=8) với đường bao âm lượng (Envelope) gõ dứt khoát trong `0.12s`, nghe đúng tiếng *"Cốc!"* trầm ấm của mõ chùa.
-  2. **Tiếng Đại Hồng Chung (`playBell()`):** Kết hợp 3 Oscillator sóng `sine` tạo âm bồi kim loại (165Hz, 330Hz, 495Hz) ngân vang kéo dài `4.0s` với hiệu ứng rung nhẹ.
-  3. **Tiếng Chuông Gió / Thắp Nhang (`playChime()`):** Sóng `sine` trong trẻo ở tần số cao (1318Hz -> 1760Hz) ngân nhẹ `1.2s` khi có người thắp nhang, thả đèn hoặc gửi lời cầu nguyện.
-- **Chống vỡ tiếng (Polyphony & Pitch Variation):**
-  - Giới hạn phát tối đa 8 luồng âm thanh/giây.
-  - Tự động biến thiên nhẹ tần số ngẫu nhiên (`±4%`) mỗi lần gõ mõ để khi nhiều người gõ liên tục âm thanh nghe tự nhiên như gõ thật, không bị đơ hay rè trên OBS.
-
-## 4. Quy tắc bàn giao (Sequential Handoff)
-Hoàn thiện 4 file thuộc phạm vi UI & Audio, cập nhật `STATUS.md` đánh dấu Agent 03 `DONE`, sau đó chuyển sang vai trò cuối cùng `04-qa-obs-optimizer`.
+### 2.3. `public/js/audio/AudioTtsManager.js` (Nhạc Thiền, Chuông Chùa & Giọng Đọc AI Tiếng Việt)
+1. **Nhạc nền đàn tranh / sáo trúc tịnh tâm (Procedural Ambient Pentatonic Melody):**
+   - Dùng Web Audio API tổng hợp tiếng đàn tranh / sáo trúc ngũ cung êm dịu chạy nền liên tục (giống hệt giai điệu nhẹ nhàng trong video mẫu) mà không cần file mp3 bản quyền.
+2. **Tiếng Đại Hồng Chung (`playTempleBell()`):**
+   - Khi nhân vật Solo quỳ xuống dâng hương trước bàn thờ, phát tiếng chuông chùa trầm hùng ngân vang (`Boong...`).
+3. **Giọng đọc AI Tiếng Việt (`speakVietnamese(text)`):**
+   - Ưu tiên phát qua luồng âm thanh `/api/tts?text=...` (Google TTS tiếng Việt chuẩn tự nhiên) kết hợp fallback sang `window.speechSynthesis` (`lang = 'vi-VN'`).
+   - Đọc rõ ràng câu chúc khi có người dâng hương: *"Dâu Việt nhà Trung đã dâng hương, chúc bạn tiền vào như nước"*.

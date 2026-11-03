@@ -1,15 +1,18 @@
 /**
- * Express & Socket.io Server Entry Point — PHẬT ĐIỆN VẠN NGƯỜI
- * 3D TikTok Interactive Spiritual Live Stream
+ * Express & Socket.io Server Entry Point
+ * TikTok Live Interactive Buddhist Hall (Chánh Điện Dâng Hương & Đám Đông Quỳ Lạy)
+ * Tuân thủ chuẩn CONTRACT.md
  */
 
 require('dotenv').config();
 const path = require('path');
 const http = require('http');
+const https = require('https');
 const express = require('express');
 const cors = require('cors');
 const { Server } = require('socket.io');
 
+const leaderboardEngine = require('./leaderboardEngine');
 const eventQueue = require('./eventQueue');
 const tiktokConnector = require('./tiktokConnector');
 const mockSimulator = require('./mockSimulator');
@@ -23,7 +26,7 @@ const io = new Server(server, {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 const INITIAL_TIKTOK_USERNAME = process.env.TIKTOK_USERNAME || '';
 const AUTO_MOCK_INIT = process.env.AUTO_MOCK !== 'false';
 
@@ -31,227 +34,146 @@ const AUTO_MOCK_INIT = process.env.AUTO_MOCK !== 'false';
 app.use(cors());
 app.use(express.json());
 
-// API ghi nhận log & lỗi từ Client Browser để chuẩn đoán tức thì
-app.post('/api/client-log', (req, res) => {
-  console.log('🔴 [CLIENT BROWSER LOG]:', JSON.stringify(req.body));
-  res.sendStatus(200);
-});
+// Phục vụ thư mục public/ làm giao diện web chính (9:16 Chánh Điện Hoàng Kim)
+const publicDir = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDir));
 
-// Phục vụ thư mục gốc trước (chứa index.html Niệm Phật Cầu An 3D, css/, js/)
-app.use(express.static(path.join(__dirname, '..')));
-app.use('/public', express.static(path.join(__dirname, '..', 'public')));
+// Fallback phục vụ assets nếu có
+app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
 
-// Khởi tạo EventQueue với Socket.io
+// Khởi tạo EventQueue & TikTokConnector & MockSimulator với Socket.io
 eventQueue.init(io);
+tiktokConnector.init(io, INITIAL_TIKTOK_USERNAME);
+mockSimulator.init(io, AUTO_MOCK_INIT);
 
 /**
- * Lấy đối tượng trạng thái phòng live chuẩn theo CONTRACT.md & PHẬT ĐIỆN VẠN NGƯỜI
+ * Socket.io Connection
  */
-function getServerStatus() {
-  const tiktokStatus = tiktokConnector.getStatus();
-  const queueStats = eventQueue.getStats();
-  return {
-    connected: tiktokStatus.connected,
-    tiktokUsername: tiktokStatus.tiktokUsername,
-    autoMock: mockSimulator.isEnabled(),
-    totalMerit: eventQueue.getTotalMerit(),
-    totalUsers: queueStats.totalUsers,
-    leaderboard: eventQueue.getLeaderboard(10)
-  };
-}
-
-/**
- * Phát trạng thái tới toàn bộ client
- */
-function broadcastStatus() {
-  io.emit('server_status', getServerStatus());
-}
-
-// Lắng nghe trạng thái TikTok thay đổi
-tiktokConnector.onStatusChange(() => {
-  broadcastStatus();
-});
-
-// Định kỳ phát server_status mỗi 3 giây để đồng bộ
-setInterval(() => {
-  broadcastStatus();
-}, 3000);
-
-// ================= Socket.io Events =================
 io.on('connection', (socket) => {
-  console.log(`[Socket.io] Client kết nối: ${socket.id}`);
-  socket.emit('server_status', getServerStatus());
+  console.log(`[Socket.io] Client đã kết nối: ${socket.id}`);
+
+  // Gửi trạng thái và danh sách nhân vật/VIP ngay khi client vừa mở
+  socket.emit('crowd_sync', leaderboardEngine.getCrowdSyncPayload());
+  socket.emit('server_status', {
+    connected: tiktokConnector.getStatus().connected,
+    tiktokUsername: tiktokConnector.getStatus().tiktokUsername,
+    autoMock: mockSimulator.isEnabled()
+  });
 
   socket.on('disconnect', () => {
     console.log(`[Socket.io] Client ngắt kết nối: ${socket.id}`);
   });
 });
 
-// ================= REST APIs =================
+/**
+ * REST APIs
+ */
 
-// 1. GET /api/status - Trạng thái hệ thống & Bảng TÂM LÒNG THÀNH
+// 1. GET /api/status - Trạng thái hệ thống & Bảng Tấm Lòng Thành
 app.get('/api/status', (req, res) => {
   res.json({
     success: true,
-    data: getServerStatus(),
-    queue: eventQueue.getStats()
-  });
-});
-
-// 2. GET /api/players - Danh sách toàn bộ Phật tử trong điện
-app.get('/api/players', (req, res) => {
-  res.json({
-    success: true,
-    players: eventQueue.getAllUsers()
-  });
-});
-
-// 3. POST /api/players/reset - Xóa danh sách người chơi để làm mới
-app.post('/api/players/reset', (req, res) => {
-  eventQueue.resetUsers();
-  broadcastStatus();
-  io.emit('reset_avatars', { timestamp: Date.now() });
-  res.json({ success: true, message: 'Đã xóa toàn bộ nhân vật' });
-});
-
-// 4. GET /api/config/commands - Lấy cấu hình command mapping hiện tại
-app.get('/api/config/commands', (req, res) => {
-  res.json({ success: true, data: eventQueue.getCommandConfig() });
-});
-
-// 5. POST /api/config/commands - Cập nhật cấu hình command mapping
-app.post('/api/config/commands', (req, res) => {
-  if (req.body && typeof req.body === 'object') {
-    eventQueue.updateCommandConfig(req.body);
-    return res.json({ success: true, message: 'Đã cập nhật cấu hình lệnh', data: eventQueue.getCommandConfig() });
-  }
-  res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
-});
-
-// 6. GET /api/config/gifts - Lấy cấu hình gift mapping hiện tại
-app.get('/api/config/gifts', (req, res) => {
-  res.json({ success: true, data: eventQueue.getGiftConfig() });
-});
-
-// 7. POST /api/config/gifts - Cập nhật cấu hình gift mapping
-app.post('/api/config/gifts', (req, res) => {
-  if (req.body && typeof req.body === 'object') {
-    eventQueue.updateGiftConfig(req.body);
-    return res.json({ success: true, message: 'Đã cập nhật cấu hình quà tặng', data: eventQueue.getGiftConfig() });
-  }
-  res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
-});
-
-// 8. GET /api/stats - Thống kê chi tiết phiên LIVE
-app.get('/api/stats', (req, res) => {
-  res.json({
-    success: true,
-    session: {
-      activePlayers: eventQueue.getAllUsers().length,
-      queue: eventQueue.getStats(),
-      serverStatus: getServerStatus()
+    data: {
+      tiktok: tiktokConnector.getStatus(),
+      autoMock: mockSimulator.isEnabled(),
+      leaderboard: leaderboardEngine.getCrowdSyncPayload(),
+      queue: eventQueue.getStats()
     }
   });
 });
 
-// 9. POST /api/config - Cấu hình kênh TikTok và chế độ Auto-Mock
+// 2. POST /api/config - Cấu hình TikTok Live & Auto-Mock
 app.post('/api/config', async (req, res) => {
-  const { tiktokUsername, autoMock } = req.body;
-  let message = [];
+  try {
+    const { tiktokUsername, autoMock } = req.body;
 
-  // Bật/tắt Auto-Mock
-  if (typeof autoMock === 'boolean') {
-    if (autoMock) {
-      mockSimulator.start();
-      message.push('Đã bật Auto-Mock');
-    } else {
-      mockSimulator.stop();
-      message.push('Đã tắt Auto-Mock');
+    if (typeof autoMock === 'boolean') {
+      if (autoMock) mockSimulator.start();
+      else mockSimulator.stop();
     }
+
+    if (typeof tiktokUsername === 'string') {
+      await tiktokConnector.connect(tiktokUsername);
+    }
+
+    const newStatus = {
+      connected: tiktokConnector.getStatus().connected,
+      tiktokUsername: tiktokConnector.getStatus().tiktokUsername,
+      autoMock: mockSimulator.isEnabled()
+    };
+
+    io.emit('server_status', newStatus);
+    res.json({ success: true, data: newStatus });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. POST /api/mock/:type - Kích hoạt nhanh các sự kiện test từ Debug Panel
+app.post('/api/mock/:type', (req, res) => {
+  const { type } = req.params;
+  try {
+    mockSimulator.triggerTest(type.toUpperCase());
+    res.json({ success: true, message: `Đã kích hoạt mock test: ${type}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. GET /api/tts - Proxy chuyển văn bản tiếng Việt sang audio stream (Google TTS)
+app.get('/api/tts', (req, res) => {
+  const text = req.query.text;
+  if (!text) {
+    return res.status(400).send('Thiếu tham số text');
   }
 
-  // Kết nối/ngắt kết nối TikTok
-  if (typeof tiktokUsername === 'string') {
-    const trimmed = tiktokUsername.trim();
-    if (trimmed === '') {
-      await tiktokConnector.disconnectTikTok();
-      message.push('Đã ngắt kết nối TikTok');
-    } else {
-      message.push(`Đang kết nối tới @${trimmed}`);
-      tiktokConnector.connectToTikTok(trimmed).catch((err) => {
-        console.error('[API Config] Lỗi kết nối TikTok:', err.message);
-      });
+  const encodedText = encodeURIComponent(text.slice(0, 200));
+  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodedText}`;
+
+  https.get(
+    ttsUrl,
+    {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Referer: 'https://translate.google.com/'
+      }
+    },
+    (stream) => {
+      if (stream.statusCode !== 200) {
+        return res.status(502).send('Lỗi khi tải luồng TTS từ dịch vụ');
+      }
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      stream.pipe(res);
     }
-  }
-
-  broadcastStatus();
-
-  res.json({
-    success: true,
-    message: message.join(', ') || 'Cấu hình đã được lưu',
-    data: getServerStatus()
+  ).on('error', (err) => {
+    console.error('[TTS Proxy] Lỗi tải audio:', err.message);
+    res.status(500).send('Không thể phát sinh giọng đọc TTS');
   });
 });
 
-// 10. POST /api/mock/:actionType - Bắn sự kiện test trực tiếp từ Admin Dashboard
-app.post('/api/mock/:actionType', (req, res) => {
-  const { actionType } = req.params;
-  const validTypes = [
-    'VIEWER_JOINED', 'SHARE',
-    'CHANT', 'NIEM_PHAT', 'KNEEL', 'BOW', 'STAND', 'PRAY', 'OFFER_INCENSE', 'OFFER_FLOWER', 'WALK_TO_ALTAR',
-    'WOODEN_FISH', 'PRAYER_TEXT', 'COMMENT_CHAT',
-    'INCENSE_1', 'INCENSE_3', 'LANTERN', 'OFFERING_FRUIT',
-    'BELL', 'CONFETTI', 'PARADE_FLOAT', 'BUDDHA_LIGHT',
-    'THOUSAND_LANTERNS', 'GOLDEN_PAGODA', 'GOLDEN_LION',
-    'GOLDEN_PHOENIX', 'TIKTOK_UNIVERSE'
-  ];
-
-  if (!validTypes.includes(actionType)) {
-    return res.status(400).json({
-      success: false,
-      message: `Loại hành động không hợp lệ. Cho phép: ${validTypes.join(', ')}`
-    });
-  }
-
-  const { user, payload } = req.body || {};
-  const event = mockSimulator.triggerManual(actionType, user, payload);
-
-  res.json({
-    success: true,
-    message: `Đã kích hoạt sự kiện ${actionType}`,
-    event
-  });
+// Catch-all route chuyển về index.html của public
+app.get('*', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Xử lý lỗi cổng bị chiếm (EADDRINUSE)
+// Bắt lỗi Server & EADDRINUSE
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ CỔNG ${PORT} ĐANG BỊ CHIẾM BỞI TIẾN TRÌNH KHÁC!`);
-    console.error(`👉 Bạn có thể giải phóng cổng bằng lệnh PowerShell sau:`);
-    console.error(`   Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess -Force`);
-    console.error(`   Sau đó gõ lại: npm start\n`);
+    console.error(`\n❌ Cổng ${PORT} đang bị chiếm dụng bởi tiến trình khác!`);
+    console.error(`Vui lòng giải phóng cổng ${PORT} hoặc đổi PORT trong .env rồi thử lại.\n`);
   } else {
-    console.error('Lỗi khởi động Server:', err);
+    console.error('Server error:', err);
   }
-  process.exit(1);
 });
 
-// Khởi chạy server
-server.listen(PORT, async () => {
-  console.log(`====================================================`);
-  console.log(` PHẬT ĐIỆN VẠN NGƯỜI — 3D TikTok Live Stream`);
-  console.log(` Cổng: http://localhost:${PORT}`);
-  console.log(` Chế độ AUTO_MOCK: ${AUTO_MOCK_INIT ? 'BẬT (ON)' : 'TẮT (OFF)'}`);
-  console.log(`====================================================`);
-
-  // Tự động kết nối kênh TikTok từ .env nếu có
-  if (INITIAL_TIKTOK_USERNAME) {
-    console.log(`[Init] Tự động kết nối tới kênh @${INITIAL_TIKTOK_USERNAME}...`);
-    tiktokConnector.connectToTikTok(INITIAL_TIKTOK_USERNAME).catch(() => {});
-  }
-
-  // Tự động kích hoạt mock nếu bật
-  if (AUTO_MOCK_INIT) {
-    mockSimulator.start();
-  }
+server.listen(PORT, () => {
+  console.log(`\n======================================================`);
+  console.log(`🌸 PHẬT ĐIỆN VẠN NGƯỜI — TIKTOK LIVE INTERACTIVE 3D 🌸`);
+  console.log(`🏛️  Chánh Điện Dâng Hương & Đám Đông Quỳ Lạy`);
+  console.log(`🚀 Đang chạy tại: http://localhost:${PORT}`);
+  console.log(`📱 Chế độ OBS:   http://localhost:${PORT}?obs=true`);
+  console.log(`⚡ Auto-Mock:    ${mockSimulator.isEnabled() ? 'BẬT' : 'TẮT'}`);
+  console.log(`======================================================\n`);
 });

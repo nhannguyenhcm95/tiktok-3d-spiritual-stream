@@ -1,51 +1,51 @@
-# Role: 01 - Backend & TikTok Live Realtime Engineer
+# Role: 01 - Backend, Leaderboard & Spotlight Queue Engineer
 
-## 1. Mục tiêu vai trò
-Xây dựng hệ thống Backend Node.js lắng nghe sự kiện từ TikTok Live, phân loại hành động, đưa vào hàng đợi ưu tiên (Priority Event Queue) để tránh làm sập khung hình 3D khi có hàng trăm người tương tác cùng lúc, hỗ trợ chế độ giả lập (Auto-Mock) và phát xuống Frontend qua Socket.io.
-
-## 2. Strict File Scope Rules (Phạm vi file nghiêm ngặt)
-- **QUYỀN GHI (Write Access):** Chỉ được tạo và chỉnh sửa các file trong `server/**` (`server/index.js`, `server/tiktokConnector.js`, `server/eventQueue.js`, `server/mockSimulator.js`) và cập nhật `STATUS.md`.
+## 1. Strict File Scope Rules (Phạm vi file nghiêm ngặt)
+- **QUYỀN GHI (Write Access):** Toàn bộ file trong `server/**` (`server/index.js`, `server/tiktokConnector.js`, `server/leaderboardEngine.js`, `server/eventQueue.js`, `server/mockSimulator.js`) và cập nhật `STATUS.md`.
 - **QUYỀN ĐỌC (Read-Only):** `CONTRACT.md`, `package.json`, `.env`, `STATUS.md`.
-- **CẤM CHẠM VÀO (Forbidden):** Tuyệt đối KHÔNG tạo hay sửa bất kỳ file nào trong thư mục `public/**`.
+- **CẤM CHẠM VÀO (Forbidden):** Không tạo hoặc sửa bất kỳ file nào trong `public/**`.
 
-## 3. Yêu cầu kỹ thuật chi tiết cho từng file
+## 2. Nhiệm vụ kỹ thuật chi tiết
 
-### 3.1. File `server/eventQueue.js` (Hàng đợi & Rate Limiter)
-- Tạo hàng đợi ưu tiên (Priority Queue):
-  - Mức ưu tiên cao (Priority 1): `BELL`, `LANTERN`, `INCENSE` (Quà tặng).
-  - Mức ưu tiên thường (Priority 2): `PRAYER_TEXT`, `WOODEN_FISH` (Comment & Like).
-- **Rate Limiter:** Không bắn trực tiếp toàn bộ event sang Frontend nếu tốc độ vượt quá 12 events/giây (mỗi 85ms lấy 1 event từ hàng đợi phát qua Socket kênh `stream_event`).
-- Nếu hàng đợi `WOODEN_FISH` bị dồn quá 50 sự kiện, tự động gộp (batching) bằng cách tăng trường `payload.intensity` để không bị trễ (lag) sự kiện.
-- Lưu trữ và cộng dồn biến `totalMerit` toàn server để phát qua kênh `server_status`.
+### 2.1. `server/leaderboardEngine.js` (Thuật toán Đệm VIP & Bảng Tấm Lòng Thành)
+- Lưu danh sách người dùng tương tác trong phiên Live (`Map<uniqueId, UserRecord>`).
+- Mỗi `UserRecord` gồm: `{ uniqueId, nickname, coins, robeType, slotIndex, lastActive }`.
+  - `robeType` phân bổ ngẫu nhiên hoặc theo cấp độ: `"GREY"` (Áo lam), `"WHITE"` (Áo dài trắng), `"BROWN"` (Áo nâu), `"MONK_YELLOW"` (Áo vàng sư thầy).
+- **Tính toán VIP & Chasers:**
+  - Sắp xếp giảm dần theo `coins`.
+  - **Top 1 -> Top 5 (`vipSeats`):** Ngồi trên 5 đệm đỏ VIP hàng đầu (4 đệm hiển thị trực diện trên sân khấu và mốc hạng 5 làm chuẩn). Nếu chưa đủ 5 người có xu, tạo sẵn các vị trí mặc định (VD: Hạng 1: 320 xu, Hạng 2: 280 xu, Hạng 3: 250 xu, Hạng 4: 220 xu, Hạng 5: 204 xu) để bảng xếp hạng luôn sinh động ngay từ đầu.
+  - **Mốc chuẩn (`fifthSeatCoins`):** Bằng số xu của người đứng Hạng 5.
+  - **Danh sách bám đuổi (`chasers`):** Lấy 4 người đứng tiếp theo (từ Hạng 6 đến Hạng 9 hoặc 7 đến 10), tự động tính:
+    `coinsNeeded = Math.max(1, fifthSeatCoins - user.coins + 1)`
+    để hiển thị câu: `"còn XX xu để lên đệm"`.
+  - **Danh sách đám đông (`crowdMembers`):** Tối đa 48 người đang hoạt động gần nhất được gán `slotIndex` từ `0` đến `47` ở hai bên thảm đỏ.
 
-### 3.2. File `server/tiktokConnector.js` (Kết nối TikTok Live)
-- Sử dụng `WebcastPushConnection` từ `tiktok-live-connector`.
-- Hỗ trợ hàm `connectToTikTok(username)` và `disconnectTikTok()` để đổi kênh `@username` động từ giao diện Admin mà không cần khởi động lại server.
-- Tự động kết nối lại (Auto-reconnect) với cơ chế Exponential Backoff (thử lại sau 3s, 6s, 12s...) nếu luồng Live bị ngắt tạm thời.
-- **Quy tắc ánh xạ sự kiện (Event Mapping) chuẩn xác theo `CONTRACT.md`:**
-  - Sự kiện `like`: Tích lũy đủ mỗi 10 tim sẽ tạo 1 sự kiện `WOODEN_FISH`.
-  - Sự kiện `chat`:
-    - Nếu comment (đã chuyển chữ thường) chứa `"cầu"`, `"ước"`, `"nguyện"`, `"bình an"`, `"sức khỏe"`, `"tài lộc"` -> Tạo sự kiện `PRAYER_TEXT`.
-    - Nếu comment chứa `"gõ"`, `"mõ"`, `"nam mô"`, `"a di đà"`, `"amen"`, `"1"`, `"công đức"` (hoặc các comment ngắn khác) -> Tạo sự kiện `WOODEN_FISH`.
-  - Sự kiện `gift`:
-    - **Chống lặp quà combo:** Bỏ qua nếu `data.giftType === 1 && !data.repeatEnd`.
-    - Tính tổng xu: `totalCoins = (data.diamondCount || 1) * (data.repeatCount || 1)`.
-    - Nếu `totalCoins` từ 1 đến 5 xu (VD: Hoa hồng) -> Trigger `INCENSE` (Thắp nhang/nến).
-    - Nếu `totalCoins` từ 6 đến 99 xu -> Trigger `LANTERN` (Thả đèn hoa đăng).
-    - Nếu `totalCoins` >= 100 xu -> Trigger `BELL` (Thỉnh đại hồng chung / Chuông lớn).
+### 2.2. `server/eventQueue.js` (Hàng đợi Spotlight Solo Dâng Hương)
+- Khi có sự kiện `gift` (tặng quà):
+  - Đưa vào hàng đợi `spotlightQueue`.
+  - Mỗi sự kiện `spotlight_incense` cần **4.8 giây** để nhân vật bước lên thảm đỏ, quỳ lạy và đọc TTS xong. Do đó, `eventQueue` chỉ phát sự kiện `spotlight_incense` tiếp theo sau khi sự kiện trước đã chạy xong (tránh 2 người đè lên nhau trên thảm đỏ).
+  - Tự động ghép câu chúc ngẫu nhiên vào trường `ttsText`:
+    - *"[Nickname] đã gửi tặng chùa [Tên quà], chúc bạn tâm an trí sáng."*
+    - *"[Nickname] đã dâng hương, chúc bạn tiền vào như nước."*
+    - *"[Nickname] đã dâng hương, chúc bạn sớm có người yêu."*
+    - *"[Nickname] đã dâng hương, chúc gia đình vạn sự bình an, học hành đỗ đạt."*
 
-### 3.3. File `server/mockSimulator.js` (Chế độ giả lập Auto-Mock)
-- Khi `autoMock = true`, tự động sinh sự kiện ngẫu nhiên mỗi 1.2 đến 3.0 giây đẩy vào `eventQueue`.
-- Tạo danh sách tên người dùng Việt Nam chân thực (VD: *Minh Anh, Hoàng Long, Thu Hiền, Thiện Nhân, Bảo Ngọc, Đức Phúc, Thanh Tâm...*) và danh sách câu cầu nguyện ý nghĩa (VD: *"Cầu mong gia đình luôn bình an mạnh khỏe"*, *"Cầu cho công việc hanh thông thuận lợi"*, *"Nam Mô A Di Đà Phật, tâm tịnh an nhiên"*, *"Xin Chúa ban bình an cho mọi người"*).
-- Tỷ lệ random sự kiện: 50% `WOODEN_FISH`, 20% `INCENSE`, 15% `PRAYER_TEXT`, 10% `LANTERN`, 5% `BELL`.
+### 2.3. `server/tiktokConnector.js` (Kết nối TikTok Live)
+- Dùng `WebcastPushConnection` từ `tiktok-live-connector`:
+  - `member` (Vào phòng) & `like`: Thêm user vào `crowdMembers` nếu còn chỗ trống.
+  - `share`: Phát sự kiện `top_banner` với nội dung `"[Nickname] đã chia sẻ buổi lễ 🙏"`.
+  - `chat`: Thêm user vào đám đông và phát ngay sự kiện `chat_bubble` để hiện bong bóng lời cầu nguyện trên đầu nhân vật đó.
+  - `gift`: Bỏ qua nếu `giftType === 1 && !repeatEnd`. Cộng xu vào `leaderboardEngine`, phát `top_banner` (`"[Nickname] dâng hương, cầu bình an (x[repeatCount])"`), cập nhật `crowd_sync` và đẩy vào `spotlightQueue`.
 
-### 3.4. File `server/index.js` (Express & Socket.io Server)
-- Phục vụ thư mục tĩnh `public/`.
-- Khi có client kết nối Socket.io, gửi ngay gói tin `server_status` hiện tại.
-- Cung cấp các REST API:
-  - `GET /api/status`: Trả về trạng thái kết nối hiện tại.
-  - `POST /api/config`: Nhận `{ tiktokUsername, autoMock }` để đổi kênh TikTok hoặc bật/tắt chế độ Auto-Mock ngay lập tức.
-  - `POST /api/mock/:actionType`: Nhận yêu cầu từ nút bấm Debug Panel để kích hoạt ngay lập tức 1 sự kiện (`WOODEN_FISH`, `INCENSE`, `BELL`, `LANTERN`, `PRAYER_TEXT`).
+### 2.4. `server/mockSimulator.js` (Giả lập Phòng Live Đông Đúc Như Thật)
+- Khởi tạo sẵn 44 Phật tử trong đám đông + Top 10 bảng xếp hạng (giống hệt video mẫu: *Hoàng Quân, thu.tr, kjen, xìn gói cuối, Von'S Tea, Joon, Mạnh Trần, Viviannetran, Nguyễn Thịnh, Thúy Đỉ, 24th2, Nhân skay, Xoài Non...*).
+- Khi `AUTO_MOCK=true`:
+  - Mỗi **1.2 giây**: Chọn ngẫu nhiên 1-2 người trong đám đông bắn `chat_bubble` với các câu cầu nguyện chân thực (*"cầu thi tốt 🍀"*, *"Mong bình an"*, *"nam mô a di đà phật"*, *"A di đà phật"*, *"cho con thi qua 6 môn"*, *"cầu cho live của con viral"*, *"ƯỚC CÓ HÍ"*).
+  - Mỗi **5.5 giây**: Bắn 1 sự kiện `top_banner` chia sẻ buổi lễ.
+  - Mỗi **11 giây**: Bắn 1 sự kiện `spotlight_incense` (tặng quà dâng hương) để kích hoạt hiệu ứng ẩn đám đông -> 1 người bước lên thảm đỏ lạy Phật -> đọc TTS.
 
-## 4. Quy tắc bàn giao (Sequential Handoff)
-Viết đầy đủ 100% code cho 4 file trong `server/`, cập nhật `STATUS.md` đánh dấu Agent 01 `DONE`, sau đó chuyển sang vai trò `02-3d-scene-engineer`.
+### 2.5. `server/index.js`
+- Phục vụ static `public/`, Socket.io và các API điều khiển:
+  - `POST /api/config`: Đổi `tiktokUsername` hoặc bật/tắt `autoMock`.
+  - `POST /api/mock/:type`: Kích hoạt nhanh `CHAT`, `SHARE`, `GIFT_SMALL`, `GIFT_VIP` từ Debug Panel.
+  - `GET /api/tts`: Proxy chuyển văn bản tiếng Việt sang audio stream (Google Translate TTS API miễn phí `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=...`) để trình duyệt và OBS phát được giọng đọc tiếng Việt mượt mà 100% cả khi máy không cài sẵn voice tiếng Việt.

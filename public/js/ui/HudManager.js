@@ -1,365 +1,242 @@
 /**
- * HUD Manager — PHẬT ĐIỆN VẠN NGƯỜI
- * Quản lý Bảng TÂM LÒNG THÀNH (Top 10), Bảng Tổng Công Đức,
- * Banner Thông Báo (Join, Share, Gift), Toast và Prayer Wall.
+ * HudManager.js - Quản lý UI HUD, Bảng Tấm Lòng Thành, Top Banner Toast
+ * và Hệ Thống DOM Object Pooling cho Thẻ Tên & Bong Bóng Chat Cầu Nguyện
+ * Tuân thủ chuẩn CONTRACT.md & Role 03
  */
 
 export class HudManager {
-  constructor(soundSynth) {
-    this.sound = soundSynth;
-    this.totalMerit = 12480;
-    this.displayedMerit = 12480;
-    this.userScores = new Map(); // uniqueId -> { nickname, avatarUrl, score, actionsCount }
-    this.totalDevotees = 8;
+  constructor() {
+    this.labelsLayer = document.getElementById('labels-layer');
+    this.topBannerToast = document.getElementById('top-banner-toast');
+    this.toastText = document.getElementById('toast-text');
+    this.fifthSeatInfo = document.getElementById('fifth-seat-info');
+    this.chasersList = document.getElementById('chasers-list');
+    this.bowCounter = document.getElementById('bow-counter');
 
-    // DOM Elements
-    this.meritCounterEl = null;
-    this.devoteeCounterEl = null;
-    this.leaderboardListEl = null;
-    this.toastContainerEl = null;
-    this.prayerWallEl = null;
-    this.topBannerEl = null;
+    // Object Pooling cho Thẻ Tên (Name Tags)
+    this.maxNameTags = 60;
+    this.nameTagPool = [];
+    this.activeNameTags = new Map(); // id -> domElement
 
-    this.meritAnimTimer = null;
-    this._onTikTokAction = this._onTikTokAction.bind(this);
-    this._onServerStatus = this._onServerStatus.bind(this);
-  }
+    // Object Pooling cho Bong Bóng Chat (Speech Bubbles)
+    this.maxBubbles = 25;
+    this.bubblePool = [];
+    this.activeBubbles = []; // mảng các bubble đang hiển thị
 
-  init() {
-    this.meritCounterEl = document.getElementById('merit-counter');
-    this.devoteeCounterEl = document.getElementById('devotee-counter');
-    this.leaderboardListEl = document.getElementById('leaderboard-list');
-    this.toastContainerEl = document.getElementById('toast-container');
-    this.prayerWallEl = document.getElementById('prayer-wall');
-    this.topBannerEl = document.getElementById('hud-event-banner');
+    this.toastTimer = null;
 
-    window.addEventListener('TIKTOK_ACTION', this._onTikTokAction);
-    window.addEventListener('SERVER_STATUS_UPDATE', this._onServerStatus);
-  }
-
-  _onServerStatus(e) {
-    const status = e.detail;
-    if (!status) return;
-
-    if (typeof status.totalMerit === 'number' && status.totalMerit > this.totalMerit) {
-      this.totalMerit = status.totalMerit;
-      this._updateMeritDisplay();
-    }
-
-    if (typeof status.totalUsers === 'number') {
-      this.totalDevotees = Math.max(8, status.totalUsers);
-      if (this.devoteeCounterEl) {
-        this.devoteeCounterEl.textContent = `${this.totalDevotees} Phật tử`;
-      }
-    }
-
-    if (Array.isArray(status.leaderboard) && status.leaderboard.length > 0) {
-      this._renderLeaderboardFromArray(status.leaderboard);
-    }
-  }
-
-  _calculateMerit(actionType, payload = {}) {
-    const repeatCount = payload.repeatCount || 1;
-    switch (actionType) {
-      case 'VIEWER_JOINED':
-        return 1;
-      case 'SHARE':
-        return 10;
-      case 'NIEM_PHAT':
-      case 'KNEEL':
-      case 'STAND':
-        return 2;
-      case 'BOW':
-        return 3;
-      case 'PRAY':
-      case 'PRAYER_TEXT':
-      case 'OFFER_FLOWER':
-      case 'WALK_TO_ALTAR':
-        return 5;
-      case 'WOODEN_FISH':
-        return 1 * (payload.intensity || 1);
-      case 'COMMENT_CHAT':
-        return 1;
-      case 'INCENSE_1':
-        return 10 * repeatCount;
-      case 'INCENSE_3':
-        return 50 * repeatCount;
-      case 'LANTERN':
-        return 100 * repeatCount;
-      case 'OFFERING_FRUIT':
-        return 200 * repeatCount;
-      case 'BELL':
-        return 1000 * repeatCount;
-      case 'CONFETTI':
-        return 1500 * repeatCount;
-      case 'PARADE_FLOAT':
-        return 30000 * repeatCount;
-      case 'BUDDHA_LIGHT':
-        return 50000 * repeatCount;
-      case 'THOUSAND_LANTERNS':
-        return 70000 * repeatCount;
-      case 'GOLDEN_PAGODA':
-        return 200000 * repeatCount;
-      case 'GOLDEN_LION':
-        return 300000 * repeatCount;
-      case 'GOLDEN_PHOENIX':
-        return 400000 * repeatCount;
-      case 'TIKTOK_UNIVERSE':
-        return 5000000 * repeatCount;
-      default:
-        return 10;
-    }
-  }
-
-  _onTikTokAction(e) {
-    const data = e.detail;
-    if (!data || !data.actionType) return;
-
-    const { actionType, user, payload, leaderboard } = data;
-    const points = this._calculateMerit(actionType, payload);
-
-    // 1. Cộng tổng công đức
-    this.totalMerit += points;
-    this._updateMeritDisplay();
-
-    // 2. Cập nhật số Phật tử
-    this.totalDevotees++;
-    if (this.devoteeCounterEl) {
-      this.devoteeCounterEl.textContent = `${this.totalDevotees} Phật tử`;
-    }
-
-    // 3. Cập nhật Bảng TÂM LÒNG THÀNH
-    if (Array.isArray(leaderboard) && leaderboard.length > 0) {
-      this._renderLeaderboardFromArray(leaderboard);
-    } else if (user && user.uniqueId) {
-      const existing = this.userScores.get(user.uniqueId) || {
-        nickname: user.nickname || 'Phật Tử',
-        avatarUrl: user.avatarUrl || 'https://via.placeholder.com/100',
-        score: 0,
-        actionsCount: 0
-      };
-      existing.score += points;
-      existing.actionsCount += 1;
-      existing.nickname = user.nickname || existing.nickname;
-      if (user.avatarUrl) existing.avatarUrl = user.avatarUrl;
-      this.userScores.set(user.uniqueId, existing);
-      this._renderLeaderboard();
-    }
-
-    // 4. Phát âm thanh tương ứng
-    if (this.sound) {
-      if (actionType === 'WOODEN_FISH' || actionType === 'NIEM_PHAT') {
-        this.sound.playWoodenFish();
-      } else if (actionType === 'BELL') {
-        this.sound.playBell();
-      } else if (actionType.startsWith('INCENSE') || actionType === 'OFFER_FLOWER' || actionType === 'BOW') {
-        this.sound.playBowl();
-      }
-    }
-
-    // 5. Hiển thị Toast & Thông báo trên đỉnh
-    this._showToast(actionType, user, payload);
-
-    // 6. Lời cầu nguyện lên Prayer Wall
-    if (actionType === 'PRAYER_TEXT' || actionType === 'PRAY') {
-      const comment = payload?.comment || '';
-      if (comment.trim().length > 0 && !['cầu an', 'cầu nguyện'].includes(comment.toLowerCase().trim())) {
-        this._showPrayerCard(user?.nickname || 'Phật Tử', comment);
-      }
-    }
-  }
-
-  _updateMeritDisplay() {
-    if (!this.meritCounterEl) return;
-    this.meritCounterEl.classList.remove('bounce');
-    void this.meritCounterEl.offsetWidth;
-    this.meritCounterEl.classList.add('bounce');
-
-    if (this.meritAnimTimer) clearInterval(this.meritAnimTimer);
-    this.meritAnimTimer = setInterval(() => {
-      const diff = this.totalMerit - this.displayedMerit;
-      if (diff <= 0) {
-        this.displayedMerit = this.totalMerit;
-        this.meritCounterEl.textContent = this.displayedMerit.toLocaleString('vi-VN');
-        clearInterval(this.meritAnimTimer);
-        this.meritAnimTimer = null;
-      } else {
-        const step = Math.max(1, Math.ceil(diff / 6));
-        this.displayedMerit += step;
-        this.meritCounterEl.textContent = this.displayedMerit.toLocaleString('vi-VN');
-      }
-    }, 30);
+    this.initPools();
   }
 
   /**
-   * Render Bảng TÂM LÒNG THÀNH (Top 10)
+   * Khởi tạo trước các phần tử DOM để tái sử dụng (Object Pooling chống giật lag)
    */
-  _renderLeaderboardFromArray(items) {
-    if (!this.leaderboardListEl) return;
-    const topItems = items.slice(0, 10);
-    this.leaderboardListEl.innerHTML = '';
+  initPools() {
+    // 1. Tạo sẵn Pool thẻ tên
+    for (let i = 0; i < this.maxNameTags; i++) {
+      const tag = document.createElement('div');
+      tag.className = 'name-tag';
+      tag.style.display = 'none';
+      tag.style.opacity = '0';
+      this.labelsLayer.appendChild(tag);
+      this.nameTagPool.push(tag);
+    }
 
-    topItems.forEach((item, index) => {
-      const rank = index + 1;
-      const row = document.createElement('div');
-      row.className = `leaderboard-item rank-${rank <= 3 ? rank : 'normal'}`;
-      row.innerHTML = `
-        <div class="leaderboard-user">
-          <span class="leaderboard-rank">#${rank}</span>
-          <img class="leaderboard-avatar" src="${item.avatarUrl || 'https://via.placeholder.com/100'}" alt="${item.nickname}" onerror="this.src='https://via.placeholder.com/100'" />
-          <span class="leaderboard-name">${this._escapeHtml(item.nickname)}</span>
-        </div>
-        <span class="leaderboard-score">+${(item.score || 0).toLocaleString('vi-VN')}</span>
-      `;
-      this.leaderboardListEl.appendChild(row);
+    // 2. Tạo sẵn Pool bong bóng chat
+    for (let i = 0; i < this.maxBubbles; i++) {
+      const bubble = document.createElement('div');
+      bubble.className = 'speech-bubble';
+      bubble.style.display = 'none';
+      bubble.style.opacity = '0';
+      this.labelsLayer.appendChild(bubble);
+      this.bubblePool.push(bubble);
+    }
+  }
+
+  /**
+   * Cập nhật vị trí thẻ tên theo danh sách toạ độ 2D từ CrowdSystem
+   */
+  updateAnchors(anchors) {
+    if (!Array.isArray(anchors)) return;
+
+    // Đánh dấu các tag đang dùng
+    const usedIds = new Set();
+
+    anchors.forEach((anchor) => {
+      if (!anchor.visible) return;
+
+      usedIds.add(anchor.id);
+      let tag = this.activeNameTags.get(anchor.id);
+
+      if (!tag) {
+        // Lấy tag từ pool
+        tag = this.nameTagPool.pop();
+        if (tag) {
+          tag.style.display = 'block';
+          this.activeNameTags.set(anchor.id, tag);
+        }
+      }
+
+      if (tag) {
+        tag.textContent = anchor.nickname || 'Phật tử';
+        // Phân loại style tag
+        if (anchor.isSolo) {
+          tag.className = 'name-tag solo-tag';
+        } else if (anchor.isVip) {
+          tag.className = 'name-tag vip-tag';
+        } else {
+          tag.className = 'name-tag';
+        }
+
+        // Định vị bằng translate3d để GPU xử lý mượt mà 60 FPS
+        tag.style.transform = `translate3d(${Math.round(anchor.x)}px, ${Math.round(anchor.y)}px, 0) translate(-50%, -100%)`;
+        tag.style.opacity = '1';
+      }
     });
-  }
 
-  _renderLeaderboard() {
-    if (!this.leaderboardListEl) return;
-    const sorted = Array.from(this.userScores.values())
-      .sort((a, b) => b.score - a.score || b.actionsCount - a.actionsCount)
-      .slice(0, 10);
-
-    if (sorted.length === 0) return;
-    this._renderLeaderboardFromArray(sorted);
-  }
-
-  _showToast(actionType, user, payload) {
-    if (!this.toastContainerEl) return;
-    let icon = '✨';
-    let actionText = '';
-
-    switch (actionType) {
-      case 'VIEWER_JOINED':
-        icon = '🪷';
-        actionText = `vừa bước vào Đại Hùng Bảo Điện`;
-        break;
-      case 'SHARE':
-        icon = '🙏';
-        actionText = `đã chia sẻ buổi lễ đến muôn nơi!`;
-        break;
-      case 'NIEM_PHAT':
-        icon = '📿';
-        actionText = `chắp tay niệm: "Nam Mô A Di Đà Phật"`;
-        break;
-      case 'BOW':
-        icon = '🙏';
-        actionText = `thành kính đảnh lễ lạy Phật`;
-        break;
-      case 'KNEEL':
-        icon = '🧘';
-        actionText = `quỳ gối trước Tam Bảo tịnh tâm`;
-        break;
-      case 'STAND':
-        icon = '🧍';
-        actionText = `đứng dậy chắp tay trang nghiêm`;
-        break;
-      case 'OFFER_FLOWER':
-        icon = '🌸';
-        actionText = `dâng đóa hoa sen tươi thắm cúng dường`;
-        break;
-      case 'WALK_TO_ALTAR':
-        icon = '🚶';
-        actionText = `tiến lên phía bàn Phật dâng lễ`;
-        break;
-      case 'INCENSE_1':
-        icon = '🕯️';
-        actionText = `thành kính dâng 1 nén tâm hương`;
-        break;
-      case 'INCENSE_3':
-        icon = '🕯️';
-        actionText = `thành kính dâng 3 nén hương Tam Bảo`;
-        break;
-      case 'BELL':
-        icon = '🔔';
-        actionText = `đã THỈNH ĐẠI HỒNG CHUNG ngân vang chánh điện!`;
-        break;
-      case 'CONFETTI':
-        icon = '🎉';
-        actionText = `cúng dường Pháo Hoa Giấy Phúc Lộc rực rỡ!`;
-        break;
-      case 'OFFERING_FRUIT':
-        icon = '🍇';
-        actionText = `dâng Mâm Hoa Quả Tươi Thắm lên bàn Phật!`;
-        break;
-      case 'BUDDHA_LIGHT':
-      case 'PARADE_FLOAT':
-      case 'THOUSAND_LANTERNS':
-      case 'GOLDEN_PAGODA':
-      case 'GOLDEN_LION':
-      case 'GOLDEN_PHOENIX':
-      case 'TIKTOK_UNIVERSE':
-        icon = '🌌';
-        actionText = `đại cúng dường ${payload?.giftName || 'Đại Lễ Linh Thiêng'}! Công đức vô lượng!`;
-        break;
-      default:
-        return; // Bỏ qua nếu chỉ là mõ gõ thường
+    // Thu hồi các tag không còn nằm trong khung nhìn
+    for (const [id, tag] of this.activeNameTags.entries()) {
+      if (!usedIds.has(id)) {
+        tag.style.display = 'none';
+        tag.style.opacity = '0';
+        this.nameTagPool.push(tag);
+        this.activeNameTags.delete(id);
+      }
     }
 
-    const toast = document.createElement('div');
-    toast.className = 'toast-item';
-    const nickname = user?.nickname || 'Phật Tử Thành Tâm';
-    const avatar = user?.avatarUrl || 'https://via.placeholder.com/100';
-
-    toast.innerHTML = `
-      <img class="toast-avatar" src="${avatar}" alt="${nickname}" onerror="this.src='https://via.placeholder.com/100'" />
-      <div class="toast-content">
-        <span class="toast-user">${icon} ${this._escapeHtml(nickname)}</span>
-        <span class="toast-action">${actionText}</span>
-      </div>
-    `;
-
-    this.toastContainerEl.appendChild(toast);
-
-    setTimeout(() => {
-      toast.classList.add('fade-out');
-      setTimeout(() => {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-      }, 500);
-    }, 4000);
+    // Cập nhật vị trí của các bong bóng chat đang bay
+    this.updateActiveBubblesPosition(anchors);
   }
 
-  _showPrayerCard(nickname, comment) {
-    if (!this.prayerWallEl) return;
-    const existing = this.prayerWallEl.querySelectorAll('.prayer-card');
-    if (existing.length >= 3) {
-      const oldest = existing[0];
-      if (oldest.parentNode) oldest.parentNode.removeChild(oldest);
+  /**
+   * Hiển thị bong bóng chat lời cầu nguyện nổi trên đầu nhân vật
+   */
+  showChatBubble(chatData) {
+    const { uniqueId, nickname, comment, slotIndex, isVip } = chatData;
+    if (!comment) return;
+
+    // Lấy bubble từ pool
+    let bubble = this.bubblePool.pop();
+    if (!bubble) {
+      // Nếu hết pool, tái sử dụng bubble cũ nhất
+      const oldest = this.activeBubbles.shift();
+      if (oldest) {
+        bubble = oldest.element;
+      }
     }
 
-    const card = document.createElement('div');
-    card.className = 'prayer-card';
-    card.innerHTML = `
-      <div class="prayer-author">🙏 ${this._escapeHtml(nickname)} cầu an:</div>
-      <div class="prayer-text">"${this._escapeHtml(comment)}"</div>
-    `;
+    if (!bubble) return;
 
-    this.prayerWallEl.appendChild(card);
+    bubble.textContent = comment;
+    bubble.style.display = 'block';
+    bubble.style.opacity = '1';
 
-    setTimeout(() => {
-      card.style.transition = 'opacity 0.8s, transform 0.8s';
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(-15px)';
-      setTimeout(() => {
-        if (card.parentNode) card.parentNode.removeChild(card);
-      }, 800);
-    }, 7000);
+    const bubbleRecord = {
+      element: bubble,
+      uniqueId,
+      slotIndex,
+      isVip,
+      expireTime: Date.now() + 4500 // Tự biến mất sau 4.5 giây
+    };
+
+    this.activeBubbles.push(bubbleRecord);
   }
 
-  _escapeHtml(text) {
-    if (!text) return '';
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+  /**
+   * Cập nhật vị trí các bong bóng chat theo vị trí nhân vật tương ứng
+   */
+  updateActiveBubblesPosition(anchors) {
+    const now = Date.now();
+    const remainingBubbles = [];
+
+    this.activeBubbles.forEach((b) => {
+      if (now > b.expireTime) {
+        // Hết hạn -> Thu hồi về pool
+        b.element.style.display = 'none';
+        b.element.style.opacity = '0';
+        this.bubblePool.push(b.element);
+        return;
+      }
+
+      // Tìm anchor tương ứng của nhân vật đó
+      let matchedAnchor = null;
+      if (b.isVip) {
+        matchedAnchor = anchors.find((a) => a.isVip && a.uniqueId === b.uniqueId) || anchors[0];
+      } else if (b.slotIndex !== undefined && b.slotIndex >= 0) {
+        matchedAnchor = anchors.find((a) => a.slotIndex === b.slotIndex);
+      } else {
+        matchedAnchor = anchors.find((a) => a.uniqueId === b.uniqueId);
+      }
+
+      if (matchedAnchor && matchedAnchor.visible) {
+        b.element.style.transform = `translate3d(${Math.round(matchedAnchor.x)}px, ${Math.round(matchedAnchor.y - 22)}px, 0) translate(-50%, -125%)`;
+        remainingBubbles.push(b);
+      } else {
+        // Nếu không tìm thấy anchor hoặc nhân vật bị ẩn, tạm giấu bubble
+        b.element.style.display = 'none';
+        remainingBubbles.push(b);
+      }
+    });
+
+    this.activeBubbles = remainingBubbles;
   }
 
-  destroy() {
-    window.removeEventListener('TIKTOK_ACTION', this._onTikTokAction);
-    window.removeEventListener('SERVER_STATUS_UPDATE', this._onServerStatus);
-    if (this.meritAnimTimer) clearInterval(this.meritAnimTimer);
+  /**
+   * Cập nhật Bảng TẤM LÒNG THÀNH góc phải trên
+   */
+  updateLeaderboard(payload) {
+    if (!payload) return;
+
+    // 1. Cập nhật mốc đệm cuối (Hạng 5)
+    if (this.fifthSeatInfo) {
+      const fifthCoins = payload.fifthSeatCoins !== undefined ? payload.fifthSeatCoins : 204;
+      this.fifthSeatInfo.innerHTML = `Đệm cuối (hạng 5) có <span class="gold-coin-val">${fifthCoins}</span> xu 🪙`;
+    }
+
+    // 2. Cập nhật danh sách 4 người bám đuổi
+    if (this.chasersList && Array.isArray(payload.chasers)) {
+      this.chasersList.innerHTML = '';
+      payload.chasers.slice(0, 4).forEach((chaser) => {
+        const item = document.createElement('div');
+        item.className = 'chaser-item';
+        item.innerHTML = `
+          <div class="chaser-main">
+            <span class="chaser-rank">${chaser.rank}.</span>
+            <span class="chaser-name" title="${chaser.nickname}">${chaser.nickname}</span>
+            <span class="chaser-coins">${chaser.coins} 🪙</span>
+          </div>
+          <div class="chaser-needed">còn ${chaser.coinsNeeded} xu để lên đệm</div>
+        `;
+        this.chasersList.appendChild(item);
+      });
+    }
+  }
+
+  /**
+   * Cập nhật bộ đếm Vòng lạy
+   */
+  updateBowCounter(count) {
+    if (this.bowCounter) {
+      this.bowCounter.textContent = `Vòng lạy: ${count}`;
+    }
+  }
+
+  /**
+   * Hiển thị Banner Thông Báo Đỉnh (Top Toast)
+   */
+  showTopToast(text, type = 'SHARE') {
+    if (!this.topBannerToast || !this.toastText) return;
+
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+
+    this.toastText.textContent = text;
+    this.topBannerToast.classList.remove('toast-hidden');
+
+    // Tự động ẩn sau 3.8 giây
+    this.toastTimer = setTimeout(() => {
+      this.topBannerToast.classList.add('toast-hidden');
+    }, 3800);
   }
 }

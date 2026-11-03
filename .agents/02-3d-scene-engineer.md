@@ -1,61 +1,50 @@
-# Role: 02 - 3D Graphics & WebGL Engineer (Three.js / GSAP)
+# Role: 02 - 3D Golden Sanctuary & Crowd Animation Engineer
 
-## 1. Mục tiêu vai trò
-Thiết kế và lập trình không gian 3D tương tác thời gian thực tỷ lệ dọc (9:16), tự động dựng toàn bộ vật thể 3D bằng Procedural Geometry kết hợp chất liệu ánh sáng chân thực, hệ thống hạt khói hương (Particle System) và chuyển động vật lý mượt mà ở mức 60 FPS.
-
-## 2. Strict File Scope Rules (Phạm vi file nghiêm ngặt)
-- **QUYỀN GHI (Write Access):** Chỉ được tạo và sửa các file trong `public/js/3d/**` (`SceneManager.js`, `ProceduralAssets.js`, `VfxManager.js`) và cập nhật `STATUS.md`.
+## 1. Strict File Scope Rules (Phạm vi file nghiêm ngặt)
+- **QUYỀN GHI (Write Access):** Chỉ tạo và sửa file trong `public/js/3d/**` (`SceneManager.js`, `CrowdSystem.js`, `AltarVfxManager.js`) và cập nhật `STATUS.md`.
 - **QUYỀN ĐỌC (Read-Only):** `CONTRACT.md`, `STATUS.md`.
-- **CẤM CHẠM VÀO (Forbidden):** Tuyệt đối KHÔNG chạm vào `server/**`, `public/index.html`, `public/css/**`, `public/js/ui/**`, `public/js/audio/**`, `public/js/main.js`.
+- **CẤM CHẠM VÀO (Forbidden):** `server/**`, `public/index.html`, `public/css/**`, `public/js/ui/**`, `public/js/audio/**`, `public/js/main.js`.
 
-## 3. Yêu cầu kỹ thuật chi tiết cho từng file
-Sử dụng `import * as THREE from 'three';` và `import gsap from 'gsap';` (được định nghĩa trong importmap của HTML). Code phải hoàn chỉnh 100%, không dùng hàm rỗng hay placeholder:
+## 2. Nhiệm vụ kỹ thuật chi tiết (Chuẩn 100% Thẩm mỹ Video Mẫu & Tối ưu 60FPS)
 
-### 3.1. File `public/js/3d/ProceduralAssets.js` (Dựng mô hình 3D tự động)
-Thiết kế các hàm tạo `THREE.Group` với chất liệu `MeshStandardMaterial` & `MeshPhysicalMaterial` (có độ bóng kim loại/gỗ trầm ấm):
-1. **Không gian & Bàn thờ chính (`createAltarGroup()`):**
-   - Bàn gỗ lim chạm khắc nhiều tầng ở trung tâm, nền gạch/đá phản chiếu ánh sáng mờ.
-   - **Lư hương đồng lớn (Censer):** Đặt chính giữa bàn thờ, có hai tai rồng/hoa văn hai bên, chân đế và lớp tro xám bên trong để cắm nhang.
-2. **Chế độ Chủ đề (`TEMPLE` vs `CHURCH`):**
-   - **Group `TEMPLE` (Chùa):** Tượng Phật ngồi tòa sen vàng ở tầng trên cao + Vòng hào quang rực rỡ phía sau (`TorusGeometry` + các tia sáng phát quang xoay chậm).
-   - **Group `CHURCH` (Nhà thờ):** Cây Thánh giá lớn phát sáng ấm áp trên bệ đá cao + Khung cửa kính màu (Stained Glass) tỏa luồng sáng God-rays và hai chân nến thờ hai bên.
-3. **Bộ Mõ gỗ & Dùi gõ (`createWoodenFishGroup()`):**
-   - Đặt ở góc phải tiền cảnh (tầng dưới) để khán giả nhìn rõ nhất.
-   - Thân mõ gỗ tròn dẹp màu nâu đỏ bóng, có khe rỗng giữa, đặt trên đệm gấm đỏ. Dùi gỗ đặt nghiêng sẵn sàng gõ.
-4. **Đại Hồng Chung / Chuông đồng (`createBellGroup()`):**
-   - Đặt ở góc trái tiền cảnh, treo trên giá gỗ chạm khắc, đi kèm chày gỗ treo ngang phía trước để đâm vào chuông khi có sự kiện `BELL`.
-5. **Hàm tạo Nén nhang / Ngọn nến động (`createIncenseOrCandle(nickname, theme)`):**
-   - Nếu `TEMPLE`: Tạo nén nhang mảnh cắm vào lư hương, đỉnh nhang có đốm lửa đỏ rực (`MeshBasicMaterial` màu cam đỏ).
-   - Nếu `CHURCH`: Tạo ngọn nến trắng đặt quanh bàn thờ với ngọn lửa vàng nhấp nháy.
-   - Gắn kèm một `THREE.Sprite` (vẽ bằng HTML5 Canvas 2D) hiển thị khung bo tròn chứa tên `nickname` của khán giả ngay phía trên cây nhang/nến.
-6. **Hàm tạo Đèn Hoa Đăng (`createSkyLantern(nickname, comment)`):**
-   - Khối lồng đèn giấy phát sáng màu vàng cam ấm áp (có `PointLight` nhỏ bên trong hoặc `emissive` mạnh) kèm thẻ tên người thả bay từ từ lên bầu trời đêm.
+### 2.1. `public/js/3d/SceneManager.js` (Chánh Điện Hoàng Kim 9:16)
+Thiết lập góc máy cố định đối xứng chính diện (Symmetrical Perspective Camera) chia khung hình 9:16 thành 2 nửa hoàn hảo như video:
+1. **Nửa trên (Chánh Điện & Đại Phật Tượng Hoàng Kim):**
+   - **Tượng Phật A Di Đà ngồi kiết già trên tòa sen vàng:** Tỷ lệ uy nghi, chất liệu vàng rực rỡ (`MeshStandardMaterial` với `color: 0xffd54f, emissive: 0xb87300, roughness: 0.25, metalness: 0.65`), tay bắt ấn Thiền định, ngực có chữ Vạn vàng.
+   - **Vách hậu & Rèm đỏ:** Vách gỗ chạm khắc ánh vàng ấm phía sau, hai góc trên màn hình có rèm nhung đỏ viền tua rua vàng.
+   - **Bàn thờ & Lư hương đồng phát sáng:** Chính giữa phía trước tượng Phật là bàn thờ chạm trổ, đặt Lư hương đồng tỏa sáng rực rỡ, hai bên là **2 bình sứ trắng cắm hoa cúc/sen trắng xanh** sum suê và hàng nến vàng lung linh.
+2. **Nửa dưới (Sân Chánh Điện, 4 Đệm VIP & Thảm Đỏ Hoa Sen):**
+   - **Sân gỗ/gạch đỏ trầm** có chiều sâu.
+   - **Thảm đỏ hoa sen ở chính giữa (Center Red Carpet):** Trải dọc từ đáy màn hình lên tới trước bàn thờ, mặt thảm vẽ họa tiết hoa sen vàng kim và đường diềm vàng hai bên bằng `CanvasTexture` sắc nét.
+   - **4 Đệm ngồi VIP (Tọa cụ đỏ viền vàng):** Đặt thành hàng ngang ngay phía trước bàn thờ (2 đệm bên trái thảm đỏ, 2 đệm bên phải thảm đỏ).
 
-### 3.2. File `public/js/3d/VfxManager.js` (Hạt khói, Sóng âm & Quản lý RAM)
-1. **Hệ thống khói hương (`SmokeParticleSystem`):**
-   - Tạo các hạt khói (`THREE.Points` với texture gradient tròn mềm tự vẽ bằng Canvas) bay lên từ lư hương, uốn lượn mềm mại theo hàm sóng `Math.sin(time + y)` và mờ dần khi lên cao.
-2. **Hiệu ứng Gõ mõ (`triggerWoodenFishVfx(position)`):**
-   - Tạo vòng sóng âm vàng kim (`RingGeometry`) lan rộng ra dưới mặt bàn rồi mờ dần.
-   - Tạo `THREE.Sprite` chữ **"+1 Công Đức"** màu vàng kim bay vút lên theo trục Y rồi biến mất.
-3. **Hạt bụi vàng không gian (`AmbientDust`):**
-   - 150 hạt bụi sáng lơ lửng khắp khung hình 9:16 tạo chiều sâu huyền ảo.
-4. **Phòng chống tràn RAM (Anti-Memory Leak - BẮT BUỘC):**
-   - Giới hạn tối đa **30 cây nhang/nến** trên bàn thờ và **15 đèn hoa đăng** trên trời cùng lúc.
-   - Khi vượt quá giới hạn hoặc khi đối tượng hết thời gian hiển thị (30 giây), BẮT BUỘC phải xóa khỏi `scene` và gọi đệ quy `.geometry.dispose()`, `.material.dispose()`, `.texture.dispose()` để OBS chạy 24/24 không bị tăng RAM.
+### 2.2. `public/js/3d/CrowdSystem.js` (Hệ thống 50 Phật tử + 4 VIP + Nhân vật Solo Dâng Hương)
+- **Dựng hình Nhân vật 3D Chibi Đa Khớp nhìn từ sau lưng (Back-view Articulated Pilgrims):**
+  - Gồm các bộ phận có khớp xoay: `torso` (vạt áo dài/áo tràng), `head` (búi tóc tròn có trâm cài cho nữ áo trắng/áo lam, hoặc đầu tròn cho sư thầy áo vàng/nâu), `leftArm`, `rightArm`, `kneelingBase`.
+  - Hỗ trợ 4 kiểu trang phục giống hệt video:
+    1. `GREY`: Áo tràng lam (xanh xám nhạt), búi tóc đen.
+    2. `WHITE`: Áo dài trắng thanh lịch, tóc búi có trâm.
+    3. `BROWN`: Áo tràng nâu trầm.
+    4. `MONK_YELLOW`: Áo cà sa vàng cam của tiểu sư thầy.
+- **Bố trí vị trí (Slot Layout):**
+  - **4 vị trí VIP:** Ngồi trên 4 chiếc đệm đỏ hàng đầu.
+  - **44 vị trí Đám đông:** Xếp thành các hàng so le ở hai bên cánh trái và cánh phải của thảm đỏ (chừa trống hoàn toàn lối đi thảm đỏ ở giữa).
+- **Đồng bộ Chu kỳ Quỳ Lạy (Synchronized Bowing Loop - 6 giây/vòng):**
+  - Mọi nhân vật trong đám đông và trên đệm VIP cùng thực hiện mượt mà bằng GSAP / Sine interpolation:
+    - Giây 0.0 -> 1.2: Đứng/Ngồi thẳng lưng, hai tay chắp lễ.
+    - Giây 1.2 -> 2.8: Quỳ xuống, gập thân và cúi đầu sát đất, hai tay mở úp xuống chiếu (Lạy Phật).
+    - Giây 2.8 -> 4.2: Giữ tư thế lạy trang nghiêm.
+    - Giây 4.2 -> 6.0: Nâng người ngồi dậy về tư thế chắp tay và phát sự kiện tăng `Vòng lạy`.
+- **Hiệu ứng "Spotlight Solo Dâng Hương" (`triggerSpotlightIncense(data)`):**
+  - Khi nhận sự kiện `SPOTLIGHT_INCENSE`:
+    1. Làm mờ toàn bộ 44 nhân vật đám đông + 4 nhân vật VIP (`opacity` giảm từ `1` về `0` trong `0.45s`, đồng thời ẩn lớp nhãn tên đám đông).
+    2. Xuất hiện **1 Nhân vật Solo** ở cuối thảm đỏ (`z` gần đáy màn hình).
+    3. Nhân vật Solo bước đi uyển chuyển dọc theo giữa thảm đỏ tiến lên trước bàn thờ (trong `1.8s`), dừng lại trước lư hương, chắp tay rồi thực hiện động tác **Quỳ cúi lạy sâu** (trong `2.4s`).
+    4. Sau khi lạy xong (`4.6s`), nhân vật Solo mờ dần và toàn bộ đám đông + VIP hiện rõ trở lại (`opacity: 1`).
+- **Xuất tọa độ 2D (`getProjectedAnchors(camera)`):**
+  - Cung cấp tọa độ màn hình `(x, y)` của từng nhân vật VIP, đám đông và nhân vật Solo để `HudManager.js` gắn nhãn tên và bong bóng chat chính xác trên đầu mà không tốn tài nguyên tạo/xóa Sprite 3D liên tục.
 
-### 3.3. File `public/js/3d/SceneManager.js` (Điều phối 3D, Camera 9:16 & GSAP)
-1. **Bố cục Camera 9:16 & Ánh sáng:**
-   - Góc máy chính diện hơi chếch từ dưới lên (Low-angle solemn view), tối ưu cho tỷ lệ dọc 9:16.
-   - Ánh sáng: `AmbientLight` dịu nhẹ, `PointLight` vàng ấm tại lư hương và hào quang, kèm sương mù `THREE.FogExp2` tạo chiều sâu.
-2. **Chuyển động Camera Sway (Chống TikTok quét AFK):**
-   - Trong vòng lặp `animate()`, máy quay luôn lắc lư nhẹ nhàng theo hình sin (`Math.sin(elapsedTime * 0.5)`) như nhịp thở và vòng hào quang luôn xoay chậm để khung hình không bao giờ đứng yên.
-3. **Lắng nghe Window Event Bus theo đúng `CONTRACT.md`:**
-   - `window.addEventListener('TIKTOK_ACTION', (e) => ...)`:
-     - `WOODEN_FISH`: Dùng GSAP xoay dùi gỗ đập vào mõ (0.08s) -> Mõ co giãn nảy nhẹ (elastic scale bounce) -> Gọi `vfx.triggerWoodenFishVfx()`.
-     - `INCENSE`: Tạo nén nhang/nến mới bay từ trên xuống cắm vào lư hương bằng GSAP -> Kích hoạt khói hương dày hơn.
-     - `BELL`: Dùng GSAP kéo chày gỗ lùi lại rồi đâm mạnh vào Đại Hồng Chung -> Chuông rung lắc (`rotation.z` dao động tắt dần) -> Hiệu ứng Camera Shake nhẹ + Bùng sáng `PointLight` vàng kim toàn cảnh.
-     - `LANTERN` & `PRAYER_TEXT`: Thả đèn hoa đăng bay từ từ lên bầu trời đêm kèm câu cầu nguyện.
-   - `window.addEventListener('THEME_CHANGE', (e) => ...)`: Chuyển đổi mượt mà giữa cảnh Chùa (`TEMPLE`) và Nhà thờ (`CHURCH`), đổi màu sương mù và ánh sáng tương ứng.
-
-## 4. Quy tắc bàn giao (Sequential Handoff)
-Hoàn thiện 3 file trong `public/js/3d/`, cập nhật `STATUS.md` đánh dấu Agent 02 `DONE`, sau đó chuyển sang vai trò `03-ui-audio-hud`.
+### 2.3. `public/js/3d/AltarVfxManager.js` (Hào Quang, Khói Hương & Ánh Nến)
+- Vòng hào quang sau đầu tượng Phật tỏa sáng dịu nhẹ theo nhịp thở.
+- Hệ thống hạt khói hương (`THREE.Points`) bay lên từ lư hương.
+- Khi có sự kiện `SPOTLIGHT_INCENSE`: Kích hoạt hiệu ứng **Lư Hương Bùng Sáng** (luồng sáng vàng ấm + 3 nén nhang phát sáng cắm vào lư + hạt kim tuyến vàng bay lên).

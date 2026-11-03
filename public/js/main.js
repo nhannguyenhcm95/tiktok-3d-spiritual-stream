@@ -1,263 +1,313 @@
 /**
- * Main Entry Point — PHẬT ĐIỆN VẠN NGƯỜI
- * Khởi tạo SceneManager, SoundSynth, HudManager.
- * Kết nối Socket.io với TikTok Live, điều phối sự kiện tương tác
- * và tích hợp Admin Dashboard (phím D) với đầy đủ test commands & gifts.
+ * main.js - Entry Point & System Integrator
+ * Kết nối Three.js 3D, Socket.io, HUD Layer, Audio/TTS và Debug Panel
+ * Tuân thủ chuẩn CONTRACT.md & Role 04
  */
 
 import { SceneManager } from './3d/SceneManager.js';
-import { SoundSynth } from './audio/SoundSynth.js';
+import { CrowdSystem } from './3d/CrowdSystem.js';
+import { AltarVfxManager } from './3d/AltarVfxManager.js';
 import { HudManager } from './ui/HudManager.js';
+import { AudioTtsManager } from './audio/AudioTtsManager.js';
 
-class App {
+class LiveInteractiveApp {
   constructor() {
+    this.container = document.getElementById('webgl-container');
     this.sceneManager = null;
-    this.soundSynth = null;
+    this.crowdSystem = null;
+    this.altarVfx = null;
     this.hudManager = null;
+    this.audioTts = null;
     this.socket = null;
 
-    this.isMuted = false;
-    this.isAutoMock = true;
-    this.lastEventTime = Date.now();
+    this.clock = null;
+    this.lastTime = 0;
+
+    this.init();
   }
 
   async init() {
-    console.log('[Main] Khởi động PHẬT ĐIỆN VẠN NGƯỜI 3D Live Stream...');
+    console.log('🌸 [App] Đang khởi tạo Chánh Điện Dâng Hương & Đám Đông Quỳ Lạy...');
 
-    // 1. Khởi tạo Three.js SceneManager
-    const webglContainer = document.getElementById('webgl-container');
-    this.sceneManager = new SceneManager(webglContainer);
-    this.sceneManager.init();
+    // 1. Kiểm tra tham số OBS Mode (?obs=true)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('obs') === 'true') {
+      document.body.classList.add('obs-mode');
+      console.log('📹 [App] Chế độ OBS Browser Source đã kích hoạt.');
+    }
 
-    // 2. Khởi tạo Web Audio Synthesizer
-    this.soundSynth = new SoundSynth();
-    this.soundSynth.init();
+    // 2. Khởi tạo Three.js SceneManager
+    this.sceneManager = new SceneManager(this.container);
 
-    // 3. Khởi tạo HUD Manager
-    this.hudManager = new HudManager(this.soundSynth);
-    this.hudManager.init();
+    // 3. Khởi tạo CrowdSystem (50 Phật tử + 4 VIP + Solo Dâng Hương)
+    this.crowdSystem = new CrowdSystem(this.sceneManager.getScene());
 
-    // 4. Mở khóa Audio tự động khi có tương tác đầu tiên
-    this._setupAudioAutoUnlock();
+    // 4. Khởi tạo AltarVfxManager (Khói hương, Hào quang, Bùng sáng lư đồng)
+    this.altarVfx = new AltarVfxManager(
+      this.sceneManager.getScene(),
+      this.sceneManager.getAltarPosition()
+    );
 
-    // 5. Kết nối Socket.io
-    this._initSocket();
+    // 5. Khởi tạo HudManager (Thẻ tên, Bong bóng chat, Bảng Tấm Lòng Thành)
+    this.hudManager = new HudManager();
 
-    // 6. Admin Dashboard (phím D)
-    this._setupDebugPanel();
+    // 6. Khởi tạo AudioTtsManager (Nhạc ngũ cung, Chuông chùa, TTS Tiếng Việt)
+    this.audioTts = new AudioTtsManager();
 
-    // 7. Anti-AFK Watchdog (chống TikTok quét phòng Live tĩnh)
-    this._startAfkWatchdog();
-
-    console.log('[Main] Hệ thống PHẬT ĐIỆN VẠN NGƯỜI đã sẵn sàng phát sóng!');
-  }
-
-  _setupAudioAutoUnlock() {
-    const unlock = () => {
-      if (this.soundSynth) this.soundSynth.unlockAudio();
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('touchstart', unlock);
+    // Lắng nghe chu kỳ lạy hoàn tất từ CrowdSystem để cập nhật HUD
+    this.crowdSystem.onBowCycleCompleted = (count) => {
+      this.hudManager.updateBowCounter(count);
     };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    window.addEventListener('touchstart', unlock, { once: true });
+
+    // 7. Kết nối Socket.io lắng nghe sự kiện từ Backend
+    this.setupSocketConnection();
+
+    // 8. Thiết lập Debug Panel & UI Controls
+    this.setupDebugPanel();
+    this.setupAudioUnlockTriggers();
+
+    // 9. Bắt đầu Render Loop 60 FPS
+    this.startTime = performance.now();
+    requestAnimationFrame((t) => this.renderLoop(t));
+
+    console.log('✅ [App] Hệ thống đã sẵn sàng phục vụ buổi lễ!');
   }
 
-  _initSocket() {
-    if (typeof io === 'undefined') return;
+  /**
+   * Kết nối Socket.io và xử lý các sự kiện thời gian thực
+   */
+  setupSocketConnection() {
+    if (typeof io === 'undefined') {
+      console.warn('⚠️ [Socket.io] Thư viện io chưa sẵn sàng, chờ nạp lại...');
+      setTimeout(() => this.setupSocketConnection(), 500);
+      return;
+    }
+
     this.socket = io();
 
-    this.socket.on('stream_event', (eventData) => {
-      this.lastEventTime = Date.now();
-      window.dispatchEvent(new CustomEvent('TIKTOK_ACTION', { detail: eventData }));
-    });
-
-    this.socket.on('server_status', (status) => {
-      window.dispatchEvent(new CustomEvent('SERVER_STATUS_UPDATE', { detail: status }));
-      this._updateStatusUI(status);
-    });
-
-    this.socket.on('reset_avatars', () => {
-      window.dispatchEvent(new CustomEvent('RESET_AVATARS'));
-    });
-
     this.socket.on('connect', () => {
-      console.log('[Socket] Đã kết nối máy chủ.');
-      const statusEl = document.getElementById('debug-status-text');
-      if (statusEl) statusEl.textContent = 'Server Online';
+      console.log('⚡ [Socket.io] Đã kết nối thành công tới Game Server!');
+      const statusEl = document.getElementById('connection-status');
+      if (statusEl) statusEl.textContent = 'Trạng thái: Đã kết nối Server';
+    });
+
+    // 1. Đồng bộ đám đông & Bảng Tấm Lòng Thành
+    this.socket.on('crowd_sync', (payload) => {
+      this.crowdSystem.syncCrowdData(payload);
+      this.hudManager.updateLeaderboard(payload);
+    });
+
+    // 2. Bong bóng chat lời cầu nguyện
+    this.socket.on('chat_bubble', (chatData) => {
+      this.hudManager.showChatBubble(chatData);
+    });
+
+    // 3. Hiệu ứng Spotlight Solo Dâng Hương (Khi có người tặng quà)
+    this.socket.on('spotlight_incense', (giftData) => {
+      console.log(`🌹 [Spotlight] Bắt đầu Solo Dâng Hương: ${giftData.nickname} (${giftData.giftName})`);
+
+      // Kích hoạt animation bước lên thảm đỏ
+      this.crowdSystem.triggerSpotlightIncense(
+        giftData,
+        // Callback khi nhân vật bước tới trước lư hương
+        () => {
+          // Lư hương bùng sáng hào quang
+          this.altarVfx.triggerAltarBurst();
+          // Tiếng Đại Hồng Chung ngân vang trầm hùng
+          this.audioTts.playTempleBell();
+          // Giọng đọc AI đọc câu chúc tiếng Việt
+          if (giftData.ttsText) {
+            this.audioTts.speakVietnamese(giftData.ttsText);
+          }
+        },
+        // Callback khi kết thúc toàn bộ nghi thức dâng hương
+        () => {
+          console.log(`🙏 [Spotlight] Hoàn tất nghi lễ dâng hương của: ${giftData.nickname}`);
+        }
+      );
+    });
+
+    // 4. Banner thông báo đỉnh màn hình (Chia sẻ / Dâng hương)
+    this.socket.on('top_banner', (bannerData) => {
+      this.hudManager.showTopToast(bannerData.text, bannerData.type);
+    });
+
+    // 5. Cập nhật trạng thái TikTok / Auto-Mock từ Server
+    this.socket.on('server_status', (status) => {
+      const mockBtn = document.getElementById('btn-toggle-mock');
+      if (mockBtn) {
+        if (status.autoMock) {
+          mockBtn.textContent = 'ĐANG BẬT';
+          mockBtn.classList.add('active');
+        } else {
+          mockBtn.textContent = 'ĐÃ TẮT';
+          mockBtn.classList.remove('active');
+        }
+      }
+
+      const statusEl = document.getElementById('connection-status');
+      if (statusEl) {
+        statusEl.textContent = status.connected
+          ? `Đang Live: @${status.tiktokUsername}`
+          : 'Trạng thái: Chưa kết nối TikTok Live';
+      }
     });
 
     this.socket.on('disconnect', () => {
-      console.warn('[Socket] Mất kết nối máy chủ.');
-      const statusEl = document.getElementById('debug-status-text');
-      if (statusEl) statusEl.textContent = 'Mất kết nối';
+      console.warn('⚠️ [Socket.io] Mất kết nối tới Game Server.');
     });
   }
 
-  _updateStatusUI(status) {
-    if (!status) return;
-    const statusEl = document.getElementById('debug-status-text');
-    if (statusEl) {
-      if (status.connected) {
-        statusEl.textContent = `Live: @${status.tiktokUsername}`;
-        statusEl.style.background = '#2e7d32';
-      } else {
-        statusEl.textContent = status.autoMock ? 'Auto-Mock (Chờ Live)' : 'Chưa kết nối';
-        statusEl.style.background = status.autoMock ? '#1565c0' : '#c62828';
-      }
+  /**
+   * Mở khóa AudioContext khi tương tác lần đầu
+   */
+  setupAudioUnlockTriggers() {
+    const unlock = () => {
+      this.audioTts.unlockAudio();
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+
+    window.addEventListener('click', unlock, { once: true });
+    window.addEventListener('touchstart', unlock, { once: true });
+
+    const soundBtn = document.getElementById('audio-unlock-btn');
+    if (soundBtn) {
+      soundBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.audioTts.unlockAudio();
+        const isOn = this.audioTts.toggleSound();
+        const icon = document.getElementById('audio-icon');
+        if (icon) icon.textContent = isOn ? '🔊' : '🔇';
+      });
     }
   }
 
-  _setupDebugPanel() {
-    const debugPanel = document.getElementById('debug-panel');
-    const toggleDebug = () => debugPanel.classList.toggle('hidden');
+  /**
+   * Thiết lập Bảng Điều Khiển Debug (Phím D hoặc nút bánh răng)
+   */
+  setupDebugPanel() {
+    const panel = document.getElementById('debug-panel');
+    const toggleBtn = document.getElementById('toggle-debug-btn');
+    const closeBtn = document.getElementById('close-debug-btn');
 
-    // Phím D ẩn/hiện Admin Dashboard
+    const togglePanel = () => {
+      if (panel) panel.classList.toggle('debug-hidden');
+    };
+
+    if (toggleBtn) toggleBtn.addEventListener('click', togglePanel);
+    if (closeBtn) closeBtn.addEventListener('click', togglePanel);
+
+    // Bật/tắt nhanh bằng phím 'D'
     window.addEventListener('keydown', (e) => {
       if (e.key === 'd' || e.key === 'D') {
-        if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-        toggleDebug();
+        togglePanel();
       }
     });
 
-    const floatingBtn = document.getElementById('debug-floating-btn');
-    if (floatingBtn) floatingBtn.onclick = toggleDebug;
-
-    const closeBtn = document.getElementById('btn-close-debug');
-    if (closeBtn) closeBtn.onclick = () => debugPanel.classList.add('hidden');
-
-    // Nút kết nối TikTok Live
+    // Nút kết nối TikTok
     const btnConnect = document.getElementById('btn-connect-tiktok');
-    const inputUsername = document.getElementById('input-tiktok-username');
-    if (btnConnect && inputUsername) {
-      btnConnect.onclick = async () => {
-        const u = inputUsername.value.trim();
+    const inputUser = document.getElementById('tiktok-user-input');
+    if (btnConnect && inputUser) {
+      btnConnect.addEventListener('click', async () => {
+        const username = inputUser.value.trim();
+        if (!username) return alert('Vui lòng nhập @username TikTok!');
+        btnConnect.textContent = 'Đang nối...';
         try {
           await fetch('/api/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tiktokUsername: u })
+            body: JSON.stringify({ tiktokUsername: username })
           });
-        } catch (e) {}
-      };
+          btnConnect.textContent = 'Đã gửi';
+          setTimeout(() => (btnConnect.textContent = 'Kết Nối'), 2000);
+        } catch (err) {
+          alert('Lỗi gửi kết nối: ' + err.message);
+          btnConnect.textContent = 'Kết Nối';
+        }
+      });
     }
 
-    // Nút Bật/Tắt Auto-Mock
+    // Nút bật/tắt Auto-Mock
     const btnMock = document.getElementById('btn-toggle-mock');
     if (btnMock) {
-      btnMock.onclick = async () => {
-        this.isAutoMock = !this.isAutoMock;
-        btnMock.textContent = this.isAutoMock ? 'Auto-Mock: BẬT' : 'Auto-Mock: TẮT';
-        if (this.isAutoMock) btnMock.classList.add('on');
-        else btnMock.classList.remove('on');
-
+      btnMock.addEventListener('click', async () => {
+        const isCurrentActive = btnMock.classList.contains('active');
+        const nextState = !isCurrentActive;
         try {
           await fetch('/api/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ autoMock: this.isAutoMock })
+            body: JSON.stringify({ autoMock: nextState })
           });
-        } catch (e) {}
-      };
+        } catch (err) {
+          console.error('Lỗi toggle mock:', err);
+        }
+      });
     }
 
-    // Nút Bật/Tắt Âm thanh
-    const btnAudio = document.getElementById('btn-toggle-audio');
-    if (btnAudio) {
-      btnAudio.onclick = () => {
-        this.isMuted = !this.isMuted;
-        window.dispatchEvent(new CustomEvent('AUDIO_TOGGLE', { detail: { muted: this.isMuted } }));
-        btnAudio.textContent = this.isMuted ? '🔇 Đã Tắt' : '🔊 Đang Bật';
-        if (this.isMuted) btnAudio.classList.remove('on');
-        else btnAudio.classList.add('on');
-      };
+    // Nút bật/tắt âm thanh trong panel
+    const btnSound = document.getElementById('btn-toggle-sound');
+    if (btnSound) {
+      btnSound.addEventListener('click', () => {
+        this.audioTts.unlockAudio();
+        const isOn = this.audioTts.toggleSound();
+        btnSound.textContent = isOn ? 'ĐANG BẬT' : 'ĐÃ TẮT';
+        if (isOn) btnSound.classList.add('active');
+        else btnSound.classList.remove('active');
+      });
     }
 
-    // Nút Xóa / Reset Phật tử trong điện
-    const btnResetPlayers = document.getElementById('btn-reset-players');
-    if (btnResetPlayers) {
-      btnResetPlayers.onclick = async () => {
-        try {
-          await fetch('/api/players/reset', { method: 'POST' });
-        } catch (e) {}
-      };
-    }
-
-    // Danh sách các nút test
-    const testList = [
-      // 1. Khán giả
-      { id: 'test-join', action: 'VIEWER_JOINED' },
-      { id: 'test-share', action: 'SHARE' },
-
-      // 2. Lệnh Comment
-      { id: 'test-nammo', action: 'NIEM_PHAT' },
-      { id: 'test-quy', action: 'KNEEL' },
-      { id: 'test-lay', action: 'BOW' },
-      { id: 'test-dung', action: 'STAND' },
-      { id: 'test-cauan', action: 'PRAY' },
-      { id: 'test-danghuong', action: 'OFFER_INCENSE' },
-      { id: 'test-danghoa', action: 'OFFER_FLOWER' },
-      { id: 'test-dile', action: 'WALK_TO_ALTAR' },
-      { id: 'test-fish', action: 'WOODEN_FISH' },
-
-      // 3. Cúng dường Quà tặng
-      { id: 'test-1', action: 'INCENSE_1' },
-      { id: 'test-5', action: 'INCENSE_3' },
-      { id: 'test-10', action: 'LANTERN' },
-      { id: 'test-20', action: 'OFFERING_FRUIT' },
-      { id: 'test-99', action: 'BELL' },
-      { id: 'test-100', action: 'CONFETTI' },
-      { id: 'test-2999', action: 'PARADE_FLOAT' },
-      { id: 'test-5000', action: 'BUDDHA_LIGHT' },
-      { id: 'test-7000', action: 'THOUSAND_LANTERNS' },
-      { id: 'test-20000', action: 'GOLDEN_PAGODA' },
-      { id: 'test-29999', action: 'GOLDEN_LION' },
-      { id: 'test-39999', action: 'GOLDEN_PHOENIX' },
-      { id: 'test-449999', action: 'TIKTOK_UNIVERSE' }
-    ];
-
-    testList.forEach(({ id, action }) => {
+    // Các nút test nhanh
+    const setupTestBtn = (id, type) => {
       const el = document.getElementById(id);
       if (el) {
-        el.onclick = async () => {
-          try {
-            await fetch(`/api/mock/${action}`, { method: 'POST' });
-          } catch (e) {}
-        };
+        el.addEventListener('click', () => {
+          fetch(`/api/mock/${type}`, { method: 'POST' }).catch((e) => console.error(e));
+        });
       }
-    });
+    };
+
+    setupTestBtn('btn-mock-chat', 'CHAT');
+    setupTestBtn('btn-mock-share', 'SHARE');
+    setupTestBtn('btn-mock-gift-small', 'GIFT_SMALL');
+    setupTestBtn('btn-mock-gift-vip', 'GIFT_VIP');
   }
 
-  _startAfkWatchdog() {
-    // Nếu quá 20 giây không có ai cmt/donate, tự động kích hoạt 1 nhịp niệm Phật nhẹ
-    setInterval(() => {
-      const now = Date.now();
-      if (now - this.lastEventTime > 20000) {
-        this.lastEventTime = now;
-        window.dispatchEvent(
-          new CustomEvent('TIKTOK_ACTION', {
-            detail: {
-              id: `afk_${now}`,
-              timestamp: now,
-              actionType: 'NIEM_PHAT',
-              user: {
-                uniqueId: 'tam_linh_online',
-                nickname: 'Đạo Tràng Chùa An Lạc',
-                avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop'
-              },
-              payload: {
-                comment: 'Nam Mô A Di Đà Phật 🙏'
-              }
-            }
-          })
-        );
-      }
-    }, 20000);
+  /**
+   * Render Loop mượt mà 60 FPS
+   */
+  renderLoop(currentTime) {
+    requestAnimationFrame((t) => this.renderLoop(t));
+
+    const delta = Math.min((currentTime - this.lastTime) / 1000, 0.1);
+    this.lastTime = currentTime;
+    const elapsed = (currentTime - this.startTime) / 1000;
+
+    // 1. Cập nhật Scene (Hào quang Phật, ánh nến lung linh)
+    this.sceneManager.update(elapsed);
+
+    // 2. Cập nhật Đám đông (Chu kỳ Quỳ Lạy 6s)
+    this.crowdSystem.update(delta);
+
+    // 3. Cập nhật Hiệu ứng (Khói hương, Hào quang bùng sáng)
+    this.altarVfx.update(delta);
+
+    // 4. Chiếu tọa độ 3D sang màn hình 2D để cập nhật Thẻ tên & Bong bóng chat
+    const camera = this.sceneManager.getCamera();
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    const anchors = this.crowdSystem.getProjectedAnchors(camera, w, h);
+    this.hudManager.updateAnchors(anchors);
+
+    // 5. Render Three.js Scene
+    this.sceneManager.render();
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  const app = new App();
-  app.init().catch(console.error);
-});
+// Khởi chạy ứng dụng khi DOM sẵn sàng
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => new LiveInteractiveApp());
+} else {
+  new LiveInteractiveApp();
+}

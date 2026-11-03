@@ -1,78 +1,31 @@
-# TIẾN ĐỘ THỰC HIỆN DỰ ÁN (PROJECT PROGRESS STATUS)
+# TIẾN ĐỘ THỰC HIỆN DỰ ÁN (PROJECT STATUS)
+## TikTok Live Interactive Buddhist Hall (Chánh Điện Dâng Hương & Đám Đông Quỳ Lạy)
 
-Dự án: **PHẬT ĐIỆN VẠN NGƯỜI — 3D TikTok Live Interactive Game (Đại Hùng Bảo Điện)**
-Trạng thái tổng thể: **COMPLETED 100% (Hoàn thiện theo Master Prompt)** 🎉
+### Trạng thái tổng quan: HOÀN THÀNH 100% (COMPLETED) 🎉
 
----
+- [x] **Role 00: Lead Architect & Performance Director** (HOÀN TẤT)
+  - Khởi tạo kiến trúc dự án theo CONTRACT.md.
+  - Cập nhật `package.json`, `.env.example`, `.env`, `.gitignore`.
+  - Khởi tạo và kiểm tra đầy đủ các cấu trúc thư mục (`server/`, `public/css/`, `public/js/3d/`, `public/js/ui/`, `public/js/audio/`).
 
-## 1. Các Tính Năng Đã Hoàn Thiện 100%
+- [x] **Role 01: Backend, Leaderboard & Spotlight Queue Engineer** (HOÀN TẤT)
+  - Hoàn thiện `server/leaderboardEngine.js`: Quản lý 5 Đệm VIP, mốc chuẩn Đệm 5, danh sách bám đuổi & tính `coinsNeeded = Math.max(1, fifthSeatCoins - user.coins + 1)` để hiển thị `"còn XX xu để lên đệm"`, cấp phát 48 slot đám đông theo LRU.
+  - Hoàn thiện `server/eventQueue.js`: Hàng đợi tuần tự cho sự kiện Spotlight Solo Dâng Hương 4.8 giây, loại bỏ hoàn toàn việc 2 người đè lên nhau trên thảm đỏ.
+  - Hoàn thiện `server/tiktokConnector.js`: Tích hợp `tiktok-live-connector` (member, like, chat, share, gift).
+  - Hoàn thiện `server/mockSimulator.js`: Giả lập phòng Live sinh động (bình luận 1.2s, chia sẻ 5.5s, quà dâng hương 11s).
+  - Hoàn thiện `server/index.js`: Phục vụ static `public/`, Socket.io, API `/api/config`, `/api/mock/:type`, và Proxy Google TTS tiếng Việt `/api/tts`.
 
-### A. Hệ thống Nhân Vật Phật Tử 3D (Avatar Manager)
-- **Mỗi người xem TikTok LIVE = 1 avatar riêng biệt**: Nhận diện theo `uniqueId`, tự động cấp phát chỗ ngồi theo lưới (Grid Seating) 72+ đệm thiền hai bên thảm đỏ hướng về bàn thờ Phật.
-- **8 biến thể trang phục & diện mạo**: Nam/Nữ áo lam, Nam/Nữ áo nâu sồng, Nam/Nữ áo xám tịnh tu, Phật tử áo trắng, Cư sĩ áo tràng.
-- **Nameplate 3D Canvas**: Nổi trên đầu nhân vật hiển thị TikTok Nickname.
-- **Bong bóng bình luận (Comment Bubble)**: Xuất hiện nổi trên đầu nhân vật khi người đó bình luận, tự động fade-out sau 4.5 giây.
-- **Animation State Machine**:
-  - `IDLE`: Ngồi tịnh tâm, nhấp nhô nhịp thở tự nhiên.
-  - `NIEM_PHAT` / `JOIN_HANDS`: Chắp 2 tay trước ngực niệm Phật.
-  - `KNEEL`: Quỳ gối trang nghiêm trước Tam Bảo.
-  - `BOW`: Gập người lạy Phật.
-  - `DEEP_BOW`: Phủ phục năm vóc sát đất đảnh lễ.
-  - `STAND`: Đứng dậy chắp tay.
-  - `PRAY`: Cầu nguyện nhắm mắt tịnh tâm.
-  - `OFFER_FLOWER`: Hai tay dâng đóa hoa sen phát sáng cúng dường.
-  - `WALK_TO_ALTAR`: Tiến lên phía bàn Phật dâng lễ rồi trở về vị trí.
+- [x] **Role 02: 3D Golden Sanctuary & Crowd Animation Engineer** (HOÀN TẤT)
+  - Hoàn thiện `public/js/3d/SceneManager.js`: Dựng Chánh Điện Hoàng Kim tỷ lệ dọc 9:16, Tượng Phật A Di Đà / Thích Ca kiết già trên đài sen vàng, bàn thờ gỗ chạm thếp vàng, lư hương đồng tỏa sáng, 2 bình sứ trắng cắm hoa cúc sum suê, hàng nến lung linh, thảm đỏ hoa sen vàng canvas texture và rèm nhung đỏ hoàng gia.
+  - Hoàn thiện `public/js/3d/CrowdSystem.js`: Dựng hình 50 Phật tử 3D chibi đa khớp (4 VIP + 44 Đám đông, 4 kiểu áo), chu kỳ quỳ lạy đồng bộ (Bowing Cycle 6 giây/vòng), hiệu ứng Spotlight Solo Dâng Hương (làm mờ đám đông -> nhân vật bước lên thảm đỏ -> quỳ lạy trước lư đồng -> hiện lại đám đông), xuất tọa độ 2D chiếu lên HUD.
+  - Hoàn thiện `public/js/3d/AltarVfxManager.js`: Khói hương bay uốn lượn, 3 nén nhang phát sáng cắm lư đồng, bùng sáng hào quang vàng kim khi dâng hương.
 
-### B. Bộ Nhận Diện Lệnh Comment (Command Parser)
-- Hỗ trợ tiếng Việt có dấu, không dấu, viết hoa/thường, tiền tố `!`:
-  - `NAM MÔ`, `a di da phat`, `!nammo` -> `NIEM_PHAT`
-  - `QUỲ`, `!quy` -> `KNEEL`
-  - `LẠY`, `lạy phật`, `!lay` -> `BOW`
-  - `ĐỨNG`, `đứng lên`, `!dung` -> `STAND`
-  - `CẦU AN`, `cầu nguyện`, `!cauan` -> `PRAY`
-  - `DÂNG HOA`, `hoa`, `!danghoa` -> `OFFER_FLOWER`
-  - `ĐI LỄ`, `!dile` -> `WALK_TO_ALTAR`
-  - Các lời bình luận khác -> Hiện Comment Bubble nổi trên đầu nhân vật.
+- [x] **Role 03: UI HUD, Speech Bubbles Pooling & Audio/TTS Engineer** (HOÀN TẤT)
+  - Hoàn thiện `public/index.html` & `public/css/style.css`: Khung 9:16 chuẩn TikTok Live, Bảng Tấm Lòng Thành, Thẻ tên VIP/Solo/Crowd, Bong bóng chat trắng tinh chữ đen mũi tên nhọn, Top banner toast.
+  - Hoàn thiện `public/js/ui/HudManager.js`: DOM Object Pooling cho thẻ tên và bong bóng chat chống giật lag 60 FPS, cập nhật mốc đệm 5 và danh sách bám đuổi, hiển thị top toast, vòng lạy.
+  - Hoàn thiện `public/js/audio/AudioTtsManager.js`: Nhạc ngũ cung thiền vị chạy nền liên tục (Web Audio API), Tiếng Đại Hồng Chung ngân vang trầm hùng (Boong...), Giọng đọc AI Tiếng Việt qua `/api/tts` và SpeechSynthesis.
 
-### C. Bảng TÂM LÒNG THÀNH (Leaderboard Top 10)
-- Nằm ở góc trên bên phải màn hình.
-- Thống kê thời gian thực: Xếp hạng (#1 - #10), Nickname, Điểm tương tác, Số hành động lễ Phật.
-- Tự động đồng bộ qua Socket.io và cập nhật hiệu ứng mượt mà.
-
-### D. Hệ thống Quà Tặng (Gift Mapping) 13 Cấp Bậc
-- Khớp 100% bảng giá xu TikTok:
-  - 1 xu (Hoa hồng, Tim): Dâng 1 nén tâm hương (+10đ)
-  - 5 xu (Bắn tim, Đào): Dâng 3 nén Tam Bảo + đảnh lễ (+50đ)
-  - 10 xu (Rosa, Cỏ 4 lá): Thả Đèn Hoa Đăng (+100đ)
-  - 20 xu (Nước hoa): Dâng Mâm Hoa Quả (+200đ)
-  - 99 xu (Hạc giấy, Vương miện): Thỉnh Đại Hồng Chung (+1.000đ)
-  - 100 xu (Pháo hoa giấy): Pháo hoa giấy kim tuyến (+1.500đ)
-  - 2.999 xu (Xe máy gấu): Cộ hoa rước lễ (+30.000đ)
-  - 5.000 xu (Máy bay, Nhà gỗ): Phật Quang Phổ Chiếu (+50.000đ)
-  - 7.000 xu (Ô tô, Tiệc sinh nhật): Vạn Ngọn Hoa Đăng (+70.000đ)
-  - 20.000 xu (Lâu đài ảo): Bảo Tháp Kim Cương (+200.000đ)
-  - 29.999 xu (Sư tử): Kim Sư Hộ Pháp (+300.000đ)
-  - 39.999 xu (Phượng hoàng): Kim Phượng Hoàng (+400.000đ)
-  - 449.999 xu (Vũ trụ TikTok): Đại Lễ Tối Thượng (+5.000.000đ)
-
-### E. Tương tác Khán Giả Mở Rộng
-- `VIEWER_JOINED`: Người xem vào Live -> Avatar xuất hiện ngay tại chỗ trống trên lưới bồ đoàn.
-- `SHARE`: Người xem share Live -> Avatar chắp tay, hiện thông báo trên HUD ("... đã chia sẻ buổi lễ 🙏").
-- `LIKE`: Tích lũy 10 like = 1 tiếng gõ mõ "Cốc!".
-
-### F. Admin Dashboard (Phím D hoặc Nút Bánh Răng ⚙️)
-- Kết nối kênh TikTok Live thực tế (`@kenh_cua_ban`).
-- Bật/tắt chế độ Auto-Mock.
-- Bật/tắt âm thanh tiếng mõ & chuông.
-- Nút xóa / reset toàn bộ Phật tử trong điện.
-- Đầy đủ nút Test: Test Join, Test Share, Test 9 lệnh Comment, Test 13 cấp bậc Gift.
-
-### G. Tích Hợp Game Kit (`Phat_Dien_Van_Nguoi_Game_Kit`)
-- **Event Deduplication & Idempotency**: Tự động loại trừ các sự kiện trùng lặp (`seenEventIds` & `seenDedupeKeys`) do reconnect hoặc gift streak.
-- **Per-User Rate Limiting & Cooldown**: Chống spam comment theo từng `userId` và `commandId` (2.5s - 5s).
-- **Cấu hình Động JSON**: `config/command-mapping.json` và `config/gift-mapping.json` có thể đọc và cập nhật qua REST API (`/api/config/commands`, `/api/config/gifts`).
-- **Nghi Lễ Dâng Hương 3D (`OFFER_INCENSE`)**: Avatar cầm nén tâm hương đỏ có đóa lửa phát sáng và khói bay nhẹ trước khi cắm vào lư đồng.
-- **Palette Mỹ Thuật Chuẩn GDD**: Thảm gấm đỏ `#8E1F1B`, Vàng kim `#E6B84A`, Ánh sáng vàng ấm `#FFE8A3`, Gỗ lim `#5A321D`.
-
----
-*Cập nhật lúc: 2026-11-03 — Đã hoàn tất và kiểm thử toàn bộ hệ thống PHẬT ĐIỆN VẠN NGƯỜI kết hợp Game Kit.*
+- [x] **Role 04: System Integrator, Debug Controller & Anti-AFK QA** (HOÀN TẤT)
+  - Hoàn thiện `public/js/main.js`: Tích hợp toàn diện các phân hệ, render loop 60 FPS, lắng nghe đầy đủ sự kiện Socket.io.
+  - Debug Panel (phím `D` hoặc nút ⚙️): Đầy đủ các nút test chat, share, quà nhỏ, quà VIP, kết nối Live thật và toggle mock/âm thanh.
+  - Khởi chạy kiểm tra `node server/index.js` thành công ở cổng 3000 và đã xác minh hệ thống hoạt động ổn định 100%.
