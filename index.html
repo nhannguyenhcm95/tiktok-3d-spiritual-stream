@@ -25,16 +25,18 @@
     }
   </script>
 
+  <!-- GSAP Animation Library (Tải đồng bộ siêu nhanh) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
   <!-- Socket.io client (tự động nhận từ Express hoặc bỏ qua nếu chạy tĩnh) -->
   <script src="/socket.io/socket.io.js" onerror="console.log('Chế độ Standalone (không có Socket.io server)')"></script>
 
-  <!-- Importmap cho Three.js r160 ES Modules và GSAP -->
+  <!-- Importmap cho Three.js r160 ES Modules -->
   <script type="importmap">
   {
     "imports": {
       "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-      "gsap": "https://unpkg.com/gsap@3.12.5/index.js"
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
     }
   }
   </script>
@@ -143,7 +145,7 @@
         </div>
       </div>
 
-      <button class="modal-primary-btn" id="btn-start-game">BƯỚC VÀO CHÙA 🙏</button>
+      <button class="modal-primary-btn" id="btn-start-game" onclick="document.getElementById('modal-welcome').classList.remove('open'); if(window.enterTemple) window.enterTemple();">BƯỚC VÀO CHÙA 🙏</button>
     </div>
   </div>
 

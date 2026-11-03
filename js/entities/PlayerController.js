@@ -14,7 +14,8 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import gsap from 'gsap';
+
+const gsap = (typeof window !== 'undefined' && window.gsap) ? window.gsap : { to: (t, p) => { if(p && p.onComplete) p.onComplete(); }, killTweensOf: () => {} };
 
 export class PlayerController {
   constructor(scene, camera, collisionSystem, environmentVfxOrOptions) {
@@ -80,19 +81,6 @@ export class PlayerController {
 
     // Khởi tạo ngay lập tức
     this.init(this.playerName);
-  }
-    this.previousPointer = { x: 0, y: 0 };
-
-    // Input state
-    this.inputVector = new THREE.Vector2(0, 0);
-    this.keyboardKeys = {
-      forward: false,
-      backward: false,
-      left: false,
-      right: false
-    };
-
-    this.nameplate = null;
   }
 
   init(playerName = 'Phật Tử Hữu Duyên') {

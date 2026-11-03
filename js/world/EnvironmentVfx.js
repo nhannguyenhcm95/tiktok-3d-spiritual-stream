@@ -9,7 +9,8 @@
  */
 
 import * as THREE from 'three';
-import gsap from 'gsap';
+
+const gsap = (typeof window !== 'undefined' && window.gsap) ? window.gsap : { to: (t, p) => { if(p && p.onComplete) p.onComplete(); }, killTweensOf: () => {} };
 
 export class EnvironmentVfx {
   constructor(scene, camera) {

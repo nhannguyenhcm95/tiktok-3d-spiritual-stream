@@ -141,10 +141,33 @@ class GameApp {
     document.getElementById('hud-player-name').innerText = this.playerName;
   }
 
+  startGame() {
+    const inputName = document.getElementById('input-welcome-name');
+    const name = (inputName && inputName.value.trim()) || 'Diệu Tâm';
+    this.playerName = name;
+    localStorage.setItem('np_devotee_name', name);
+    const hudName = document.getElementById('hud-player-name');
+    if (hudName) hudName.innerText = name;
+
+    // Cập nhật tên trên đầu nhân vật 3D
+    if (this.playerController) {
+      this.playerController.setDevoteeName(name);
+    }
+
+    // Khởi động Web Audio API
+    if (this.audioSynth) {
+      this.audioSynth.init();
+      this.audioSynth.startAmbient();
+    }
+
+    this.closeModal('modal-welcome');
+    this.isGameStarted = true;
+    this.showToast(`Chào mừng ${name} đến với Chùa An Lạc 🙏`);
+  }
+
   initUIBindings() {
     // 1. Modal Welcome & Bắt đầu
     const btnStart = document.getElementById('btn-start-game');
-    const inputName = document.getElementById('input-welcome-name');
     const robeItems = document.querySelectorAll('.radio-pill-item[data-robe]');
 
     robeItems.forEach(item => {
@@ -154,25 +177,11 @@ class GameApp {
       });
     });
 
-    btnStart.addEventListener('click', () => {
-      const name = inputName.value.trim() || 'Diệu Tâm';
-      this.playerName = name;
-      localStorage.setItem('np_devotee_name', name);
-      document.getElementById('hud-player-name').innerText = name;
-
-      // Cập nhật tên trên đầu nhân vật 3D
-      if (this.playerController) {
-        this.playerController.setDevoteeName(name);
-      }
-
-      // Khởi động Web Audio API
-      this.audioSynth.init();
-      this.audioSynth.startAmbient();
-
-      this.closeModal('modal-welcome');
-      this.isGameStarted = true;
-      this.showToast(`Chào mừng ${name} đến với Chùa An Lạc 🙏`);
-    });
+    if (btnStart) {
+      btnStart.addEventListener('click', () => {
+        this.startGame();
+      });
+    }
 
     // 2. Nút Niệm Phật góc phải dưới
     const btnChant = document.getElementById('btn-chant-once');
@@ -661,7 +670,28 @@ class GameApp {
   }
 }
 
-// Khởi chạy Game khi DOM sẵn sàng
-window.addEventListener('DOMContentLoaded', () => {
-  window.gameApp = new GameApp();
-});
+// Hàm toàn cục cho nút bấm [BƯỚC VÀO CHÙA]
+window.enterTemple = function() {
+  const modal = document.getElementById('modal-welcome');
+  if (modal) modal.classList.remove('open');
+  if (window.gameApp) {
+    window.gameApp.startGame();
+  }
+};
+
+// Khởi chạy Game an toàn (xử lý cả trường hợp DOMContentLoaded đã kích hoạt)
+function bootGame() {
+  if (window.gameApp) return;
+  try {
+    window.gameApp = new GameApp();
+    console.log('✅ Chùa An Lạc 3D đã khởi tạo thành công!');
+  } catch (err) {
+    console.error('Lỗi khởi tạo GameApp:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootGame);
+} else {
+  bootGame();
+}
